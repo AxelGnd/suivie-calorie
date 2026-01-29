@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Suivi Calories & Macros - Plats interactifs</title>
+    <style>
+        :root { --bg:#0f172a; --card:#111827; --muted:#6b7280; --text:#e5e7eb; --accent:#22c55e; }
+        *{box-sizing:border-box}
+        body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; background:var(--bg); color:var(--text)}
+        .wrap{max-width:960px; margin:0 auto; padding:24px}
+        .card{background:var(--card); border:1px solid #1f2937; border-radius:18px; padding:18px; box-shadow:0 10px 20px rgba(0,0,0,.25)}
+        h1{margin:0 0 8px; font-size:26px}
+        p.helper{margin:0 0 16px; color:var(--muted); font-size:14px}
+        .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+        input[type="text"], input[type="number"], button{height:40px; border-radius:10px; border:1px solid #374151; background:#0b1220; color:var(--text); padding:0 12px}
+        input[type="number"]{width:90px}
+        button{cursor:pointer}
+        button.primary{background:#0b3b22; border-color:#1f5134}
+        button.danger{background:#3b0b0b; border-color:#512121}
+        table{width:100%; border-collapse:separate; border-spacing:0; margin-top:12px; display:block; overflow-x:auto;}
+        th,td{border-bottom:1px solid #1f2937; padding:10px; text-align:center; font-size:14px}
+        thead th{position:sticky; top:0; background:#0b1220; z-index:1}
+        tbody tr:hover{background:#0b1220}
+        /* Lignes du tableau (desktop) */
+        tbody tr {
+            transition: all 0.25s ease; /* animation hover */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08); /* ombre douce */
+            margin-bottom: 8px; /* espace entre lignes */
+            border-radius: 10px; /* coins arrondis */
+        }
+        /* Hover léger pour les lignes */
+        tbody tr:hover {
+            background: #111827;
+            transform: translateY(-2px); /* léger mouvement */
+            box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+        }
+        /* Pour les cartes des plats (modal ou sections) */
+        .card, .modal-content {
+            transition: all 0.3s ease;
+        }
+        /* Animation fade-in (ajout d'un item) */
+        .fade-in {
+            animation: fadeIn 0.45s ease forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .totals{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:16px}
+        .stat{background:#0b1220; border:1px solid #1f2937; border-radius:12px; padding:12px; text-align:center}
+        .stat b{display:block; font-size:18px}
+        details{margin-top:14px}
+        details summary{cursor:pointer; color:#a7f3d0}
+        .actions{display:flex; gap:10px; margin-top:20px; flex-wrap:wrap}
+        .actions button{flex:1}
+
+        .bar-container { background:#1f2937; border-radius:10px; height:20px; width:100%; margin:5px 0; overflow:hidden; position:relative; }
+        .bar {
+            height:100%;
+            border-radius:10px;
+            text-align:right;
+            padding-right:8px;
+            color:white;
+            font-size:12px;
+            transition: width 0.7s cubic-bezier(.2,.9,.2,1);
+            width:0%;
+            box-sizing:border-box;
+            white-space:nowrap;
+        }
+
+        /* Couleurs fixes par jauge (ne sont pas écrasées) */
+        .bar.prot  { background:#3b82f6; }   /* Bleu */
+        .bar.carb  { background:#f97316; }   /* Orange */
+        .bar.fat   { background:#a855f7; }   /* Violet */
+        .bar.cal   { background:#22c55e; }   /* Vert */
+
+        /* Classe 'over' : on ajoute un outline / léger effet mais on ne remplace la couleur */
+        .bar.over { box-shadow: 0 0 0 2px rgba(220,38,38,0.12); }
+
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); overflow:auto; z-index: 1000 }
+        .modal-content { background:#111827; margin:5% auto; padding:20px; width:90%; max-width:700px; border-radius:10px; color:var(--text); position : relative; z-index: 1001;}
+        .close { float:right; cursor:pointer; font-size:20px; }
+        .tabs{display:flex; gap:10px; margin-bottom:12px;}
+        .tab-btn{flex:1; padding:10px; cursor:pointer; border:none; border-radius:10px; background:#1f2937; color:var(--text)}
+        .tab-btn.active{background:var(--accent); color:#0f172a}
+
+        @media (max-width:640px){ 
+            h1{font-size:22px} 
+            input[type="number"]{width:80px} 
+            .totals{grid-template-columns:1fr;} 
+        }
+        @media (max-width:640px){
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+            thead { display: none; }
+            tbody tr {
+                margin-bottom: 12px;
+                background: #0b1220;
+                padding: 12px;
+                border-radius: 12px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.18);
+            }
+            tbody td {
+                display: flex;
+                justify-content: space-between;
+                padding: 6px 0;
+                border: none;
+                font-size: 14px;
+            }
+            tbody td::before {
+                content: attr(data-label);
+                font-weight: bold;
+                color: var(--muted);
+                margin-right: 8px;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="wrap">
+    <div class="card">
+        <h1>Suivi Calories & Macros</h1>
+        <p class="helper">Tout est <b>par 100 g</b>. Saisis la quantité pour chaque aliment ou plat.</p>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="ingredients">Ingrédients</button>
+            <button class="tab-btn" data-tab="plats">Plats</button>
+        </div>
+
+        <div id="tab-ingredients" class="tab-content">
+            <div class="row" style="margin-bottom:8px">
+                <input id="q" type="text" placeholder="Rechercher un aliment…" />
+            </div>
+            <details>
+                <summary>➕ Ajouter un aliment personnalisé</summary>
+                <div class="row" style="margin-top:10px">
+                    <input id="f-nom" type="text" placeholder="Nom (ex: Fromage blanc 0%)" style="flex:1" />
+                    <input id="f-prot" type="number" step="0.1" placeholder="Prot /100g" />
+                    <input id="f-carb" type="number" step="0.1" placeholder="Gluc /100g" />
+                    <input id="f-fat"  type="number" step="0.1" placeholder="Lip /100g" />
+                    <input id="f-kcal" type="number" step="1"   placeholder="Kcal /100g" />
+
+                    <!-- Nouvelle liste Catégorie -->
+                    <select id="f-cat">
+                      <option value="prot">🥩 Protéine</option>
+                      <option value="carb">🍚 Glucide</option>
+                      <option value="fat">🥑 Lipide</option>
+                    </select>
+
+                    <button id="btn-add" class="primary">Ajouter</button>
+                    <button id="btn-clear-custom" class="danger">Vider persos</button>
+                </div>
+            </details>
+            <div class="row" style="margin-bottom:10px; align-items:center;">
+  <label>Filtrer par catégorie : </label>
+  <select id="filter-cat">
+    <option value="">Toutes</option>
+    <option value="prot">🥩 Protéines</option>
+    <option value="carb">🍚 Glucides</option>
+    <option value="fat">🥑 Lipides</option>
+  </select>
+</div>
+
+            <table id="tbl">
+                <thead>
+                <tr>
+                    <th style="text-align:left">Aliment</th>
+                    <th>Prot (/100g)</th>
+                    <th>Gluc (/100g)</th>
+                    <th>Lip (/100g)</th>
+                    <th>Kcal (/100g)</th>
+                    <th>Catégorie</th>
+                    <th>Quantité (g)</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="tab-plats" class="tab-content" style="display:none;">
+            <div class="row" style="margin-bottom:8px">
+                <button id="btn-add-plat" class="primary">🍲 Créer un plat</button>
+            </div>
+            <table id="tbl-plats">
+                <thead>
+                <tr>
+                    <th style="text-align:left">Plat</th>
+                    <th>Prot</th>
+                    <th>Gluc</th>
+                    <th>Lip</th>
+                    <th>Kcal</th>
+                    <th>Quantité (portion)</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="totals">
+            <div class="stat"><span>Protéines totales</span><b id="t-prot" data-value="0">0 g</b>
+                <div class="bar-container" onclick="ouvrirGraph('prot')"><div id="barProt" class="bar prot"></div></div></div>
+            <div class="stat"><span>Glucides totaux</span><b id="t-carb" data-value="0">0 g</b>
+                <div class="bar-container" onclick="ouvrirGraph('carb')"><div id="barCarb" class="bar carb"></div></div></div>
+            <div class="stat"><span>Lipides totaux</span><b id="t-fat" data-value="0">0 g</b>
+                <div class="bar-container" onclick="ouvrirGraph('fat')"><div id="barFat" class="bar fat"></div></div></div>
+            <div class="stat"><span>Calories totales</span><b id="t-kcal" data-value="0">0 kcal</b>
+                <div class="bar-container" onclick="ouvrirGraph('cal')"><div id="barCal" class="bar cal"></div></div></div>
+        </div>
+
+        <div class="actions">
+            <button class="primary" onclick="sauvegarderJournee()">💾 Sauvegarder la journée</button>
+            <button class="danger" onclick="nouvelleJournee()">🔄 Nouvelle journée</button>
+            <button onclick="ouvrirObjModal()">⚙️ Modifier objectifs</button>
+        </div>
+    </div>
+</div>
+
+    <div id="modal-plat" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('modal-plat').style.display='none'">&times;</span>
+            <h3>Créer un plat</h3>
+            <!-- Barre de recherche et filtre -->
+            <!-- dans #modal-plat .modal-content, après le <h3> -->
+<div style="margin-bottom:8px; display:flex; gap:8px;">
+  <input id="modal-p-nom" type="text" placeholder="Nom du plat…" style="flex:1" />
+</div>
+
+<div style="margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap;">
+  <input id="ing-search" type="text" placeholder="Rechercher un aliment…" style="flex:1"/>
+  <select id="ing-filter">
+    <option value="">Toutes</option>
+    <option value="prot">🥩 Protéines</option>
+    <option value="carb">🍚 Glucides</option>
+    <option value="fat">🥑 Lipides</option>
+  </select>
+</div>
+
+<!-- Liste des ingrédients -->
+<div id="ingredients-list" style="max-height:400px;overflow:auto"></div>
+
+          
+            <button id="btn-save-plat" class="primary" style="margin-top:10px">Valider le plat</button>
+        </div>
+    </div>
+
+<script>
+
+
+    // --- Données ---
+    
+   
+    const LS_CUSTOM="cm_foods_custom_v5";
+const LS_QTY="cm_quantities_v5";
+const LS_PLATS="cm_plats_v3";
+const defaultAliments = [
+  { Nom: "Poulet (blanc, cuit)",          Proteines: 31.0, Glucides: 0.0,  Lipides: 3.6,  Calories: 165, Categorie: "prot" },
+  { Nom: "Riz basmati (cuit)",           Proteines: 2.6,  Glucides: 28.0, Lipides: 0.3,  Calories: 130, Categorie: "carb" },
+  { Nom: "Œuf entier (100 g)",           Proteines: 12.6, Glucides: 1.1,  Lipides: 9.5,  Calories: 143, Categorie: "prot" },
+  { Nom: "Fromage blanc 0%",             Proteines: 8.0,  Glucides: 4.0,  Lipides: 0.2,  Calories: 48,  Categorie: "prot" },
+  { Nom: "Banane",                       Proteines: 1.1,  Glucides: 23.0, Lipides: 0.3,  Calories: 89,  Categorie: "carb" },
+  { Nom: "Amandes",                      Proteines: 21.0, Glucides: 22.0, Lipides: 50.0, Calories: 579, Categorie: "fat" },
+  { Nom: "Huile d'olive",                Proteines: 0.0,  Glucides: 0.0,  Lipides:100.0, Calories: 900, Categorie: "fat" },
+
+  /* Ajouts en respectant prot / carb / fat */
+  { Nom: "Saumon (cuit)",                Proteines: 25.0, Glucides: 0.0,  Lipides: 13.0, Calories: 206, Categorie: "prot" },
+  { Nom: "Bœuf (steak maigre, cuit)",    Proteines: 26.0, Glucides: 0.0,  Lipides: 15.0, Calories: 250, Categorie: "prot" },
+  { Nom: "Pommes",                       Proteines: 0.3,  Glucides: 11.3, Lipides: 0.2,  Calories: 52,  Categorie: "carb" },
+  { Nom: "Brocoli",                      Proteines: 2.8,  Glucides: 6.6,  Lipides: 0.4,  Calories: 34,  Categorie: "carb" },
+  { Nom: "Pomme de terre (cuite à l'eau)",Proteines: 2.0, Glucides:20.1,  Lipides: 0.1,  Calories: 87,  Categorie: "carb" },
+  { Nom: "Lentilles (cuites)",           Proteines: 9.0,  Glucides:20.0,  Lipides: 0.4,  Calories:116,  Categorie: "carb" },
+  { Nom: "Quinoa (cuit)",                Proteines: 4.4,  Glucides:21.3,  Lipides: 1.9,  Calories:120,  Categorie: "carb" },
+  { Nom: "Avocat",                       Proteines: 2.0,  Glucides: 9.0,  Lipides:15.0, Calories:160,  Categorie: "fat" },
+  { Nom: "Yaourt nature (0% MG)",        Proteines: 5.0,  Glucides: 4.7,  Lipides: 0.1,  Calories: 46,  Categorie: "prot" },
+  { Nom: "Miel",                         Proteines: 0.3,  Glucides:82.0,  Lipides: 0.0,  Calories:304,  Categorie: "carb" },
+  { Nom: "Tomate",                       Proteines: 0.9,  Glucides: 3.9,  Lipides: 0.2,  Calories:18,   Categorie: "carb" },
+  { Nom: "Porc (cuisse, cuit)",          Proteines: 27.0, Glucides: 0.0,  Lipides: 14.0, Calories: 242, Categorie: "prot" },
+  { Nom: "Fromage (emmental)",           Proteines: 27.0, Glucides: 1.3,  Lipides: 33.0, Calories: 393, Categorie: "prot" },
+  { Nom: "Pain complet",                 Proteines: 9.0,  Glucides:43.0,  Lipides: 3.5,  Calories:247,  Categorie: "carb" },
+  { Nom: "Pois chiches (cuits)",         Proteines: 8.9,  Glucides:27.4,  Lipides: 2.6,  Calories:164,  Categorie: "carb" }
+];
+
+    let deletedDefaults = JSON.parse(localStorage.getItem("deletedDefaults") || "[]");
+
+
+
+
+/* --- objectifs utilisateur (persistés) --- */
+const LS_OBJ = "cm_objectifs_v1";
+    
+    // --- Initialisation de base ---
+if(!localStorage.getItem(LS_CUSTOM)){
+  const base = [
+    { Nom:"Poulet (blanc, cuit)", Proteines:31, Glucides:0, Lipides:3.6, Calories:165, Categorie:"prot" },
+    { Nom:"Riz basmati (cuit)", Proteines:2.6, Glucides:28, Lipides:0.3, Calories:130, Categorie:"carb" },
+    { Nom:"Œuf entier", Proteines:12.6, Glucides:1.1, Lipides:9.5, Calories:143, Categorie:"prot" },
+    { Nom:"Fromage blanc 0%", Proteines:8, Glucides:4, Lipides:0.2, Calories:48, Categorie:"prot" },
+    { Nom:"Banane", Proteines:1.1, Glucides:23, Lipides:0.3, Calories:89, Categorie:"carb" },
+    { Nom:"Amandes", Proteines:21, Glucides:22, Lipides:50, Calories:579, Categorie:"fat" },
+    { Nom:"Huile d'olive", Proteines:0, Glucides:0, Lipides:100, Calories:900, Categorie:"fat" }
+  ];
+  localStorage.setItem(LS_CUSTOM, JSON.stringify(base));
+}
+
+function getObj(){
+  return JSON.parse(localStorage.getItem(LS_OBJ)) || {prot:160, carb:220, fat:60, cal:2200};
+}
+// on initialise objectifs AVANT toute fonction qui s'en sert
+let objectifs = getObj();
+
+
+    const $q=document.getElementById("q");
+    const $tbody=document.querySelector("#tbl tbody");
+    const $tbodyPlats=document.querySelector("#tbl-plats tbody");
+
+    // --- Onglets ---
+    document.querySelectorAll(".tab-btn").forEach(btn=>{
+        btn.addEventListener("click",()=>{
+            document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+            btn.classList.add("active");
+            document.querySelectorAll(".tab-content").forEach(tc=>tc.style.display="none");
+            document.getElementById("tab-"+btn.dataset.tab).style.display="block";
+        });
+    });
+
+    // --- Stockage ---
+    function getFoods(){ 
+    const custom = JSON.parse(localStorage.getItem(LS_CUSTOM) || "[]");
+    const override = JSON.parse(localStorage.getItem('cm_aliments_override_v1') || '{}');
+
+    const base = defaultAliments
+        .filter(f => !deletedDefaults.includes(f.Nom)) // <-- filtrage des supprimés
+        .map(f => override[f.Nom] || f);               // <-- applique les overrides si existants
+
+    return [...base, ...custom];
+}
+
+
+
+
+    function getQuantities(){ return JSON.parse(localStorage.getItem(LS_QTY)||"{}"); }
+    function saveQuantities(q){ localStorage.setItem(LS_QTY,JSON.stringify(q)); }
+    function getPlats(){ return JSON.parse(localStorage.getItem(LS_PLATS)||"[]"); }
+    function savePlats(p){ localStorage.setItem(LS_PLATS,JSON.stringify(p)); }
+
+    // --- Render Ingrédients ---
+    function renderTable() {
+    const foods = getFoods();
+    const qmap = getQuantities();
+    const term = ($q.value||"").toLowerCase();
+    const catFilter = document.getElementById("filter-cat").value; // <--- filtre
+
+
+    $tbody.innerHTML = "";
+
+    foods.filter(f => 
+        (!term || f.Nom.toLowerCase().includes(term)) &&
+        (!catFilter || f.Categorie === catFilter) // <--- filtrage
+    ).forEach((f, index) => {
+        const qty = qmap[f.Nom] || 0;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td data-label="Aliment" style="text-align:left">${f.Nom}</td>
+            <td data-label="Prot (/100g)">${f.Proteines}</td>
+            <td data-label="Gluc (/100g)">${f.Glucides}</td>
+            <td data-label="Lip (/100g)">${f.Lipides}</td>
+            <td data-label="Kcal (/100g)">${f.Calories}</td>
+            <td data-label="Catégorie">
+                <span class="cat-icon cat-${f.Categorie}">
+                  ${getCatIcon(f.Categorie)} ${f.Categorie}
+                </span>
+            </td>
+            <td data-label="Quantité (g)">
+                <input class="qty-inp" type="number" min="0" step="1" value="${qty}" data-name="${f.Nom}">
+            </td>
+            <td data-label="Actions">
+                <button onclick="modifierAliment(${index})">✏️</button>
+                <button onclick="supprimerAliment(${index})">❌</button>
+            </td>
+        `;
+        tr.classList.add("fade-in");
+        $tbody.appendChild(tr);
+    });
+
+    // Attacher les événements aux inputs fraîchement créés
+    $tbody.querySelectorAll(".qty-inp").forEach(inp=>{
+        inp.addEventListener("input",()=>{
+            const map = getQuantities();
+            map[inp.dataset.name] = Math.max(0, Number(inp.value || 0));
+            saveQuantities(map);
+            computeTotals();
+        });
+    });
+
+    computeTotals();
+}
+
+
+    // --- Render Plats ---
+    function renderPlats(){
+        $tbodyPlats.innerHTML="";
+        getPlats().forEach((p,index)=>{
+            const tr=document.createElement("tr");
+            tr.innerHTML = `
+      <td data-label="Plat" style="text-align:left">${p.Nom}</td>
+      <td data-label="Prot">${p.totalProt.toFixed(1)}</td>
+      <td data-label="Gluc">${p.totalCarb.toFixed(1)}</td>
+      <td data-label="Lip">${p.totalFat.toFixed(1)}</td>
+      <td data-label="Kcal">${p.totalCal.toFixed(1)}</td>
+      <td data-label="Portions">
+          <input class="plat-inp" type="number" min="0" step="1" value="0" data-index="${index}">
+      </td>
+      <td data-label="Actions">
+           <button onclick="ouvrirPlatModal(${index})">✏️</button>
+          <button onclick="supprimerPlat(${index})">❌</button>
+      </td>
+    `;
+            tr.classList.add("fade-in");
+            $tbodyPlats.appendChild(tr);
+        });
+
+        $tbodyPlats.querySelectorAll('.plat-inp').forEach(inp=>{
+            inp.addEventListener("input",()=>{ computeTotals(); });
+        });
+    }
+
+    // --- Supprimer / Modifier aliments ---
+   function modifierAliment(index) {
+    const foods = getFoods();
+    if (index < 0 || index >= foods.length) return;
+    const aliment = foods[index];
+
+    // Créer la modal
+    const modal = document.createElement("div");
+    modal.style.position = "fixed";
+    modal.style.top = 0;
+    modal.style.left = 0;
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.backgroundColor = "rgba(0,0,0,0.5)";
+    modal.style.display = "flex";
+    modal.style.alignItems = "center";
+    modal.style.justifyContent = "center";
+    modal.style.zIndex = 9999;
+
+    modal.innerHTML = `
+        <div style="background:var(--card); padding:20px; border-radius:10px; max-width:400px; width:100%;">
+            <h3>Modifier l'aliment</h3>
+            <label>Nom: <input type="text" id="edit-nom" value="${aliment.Nom}"></label><br><br>
+            <label>Protéines /100g: <input type="number" id="edit-prot" value="${aliment.Proteines}" step="0.1"></label><br><br>
+            <label>Glucides /100g: <input type="number" id="edit-carb" value="${aliment.Glucides}" step="0.1"></label><br><br>
+            <label>Lipides /100g: <input type="number" id="edit-fat" value="${aliment.Lipides}" step="0.1"></label><br><br>
+            <label>Calories /100g: <input type="number" id="edit-cal" value="${aliment.Calories}" step="1"></label><br><br>
+            <label>Catégorie:
+                <select id="edit-cat">
+                    <option value="prot" ${aliment.Categorie === 'prot' ? 'selected' : ''}>Protéine</option>
+                    <option value="carb" ${aliment.Categorie === 'carb' ? 'selected' : ''}>Glucide</option>
+                    <option value="fat"  ${aliment.Categorie === 'fat' ? 'selected' : ''}>Lipide</option>
+                </select>
+            </label><br><br>
+            <button id="save-aliment">Sauvegarder</button>
+            <button id="cancel-aliment">Annuler</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Annuler
+    modal.querySelector("#cancel-aliment").onclick = () => {
+        document.body.removeChild(modal);
+    };
+
+    // Sauvegarder
+    modal.querySelector("#save-aliment").onclick = () => {
+        const newNom = modal.querySelector("#edit-nom").value.trim();
+        const prot   = parseFloat(modal.querySelector("#edit-prot").value);
+        const carb   = parseFloat(modal.querySelector("#edit-carb").value);
+        const fat    = parseFloat(modal.querySelector("#edit-fat").value);
+        const cal    = parseFloat(modal.querySelector("#edit-cal").value);
+        const cat    = modal.querySelector("#edit-cat").value;
+
+        if (!newNom || [prot, carb, fat, cal].some(v => Number.isNaN(v))) {
+            alert("Veuillez remplir tous les champs correctement.");
+            return;
+        }
+
+        // Vérification doublon
+        if (newNom.toLowerCase() !== aliment.Nom.toLowerCase() &&
+            getFoods().some(f => f.Nom.toLowerCase() === newNom.toLowerCase())) {
+            alert("Un aliment avec ce nom existe déjà !");
+            return;
+        }
+
+        // Déterminer si c'est un aliment par défaut ou personnalisé
+        const visibleDefaults = defaultAliments.filter(f => !deletedDefaults.includes(f.Nom));
+        if (visibleDefaults.some(f => f.Nom === aliment.Nom)) {
+            // Aliments par défaut → override
+            const override = JSON.parse(localStorage.getItem('cm_aliments_override_v1') || '{}');
+            override[aliment.Nom] = { Nom: newNom, Proteines: prot, Glucides: carb, Lipides: fat, Calories: cal, Categorie: cat };
+            localStorage.setItem('cm_aliments_override_v1', JSON.stringify(override));
+        } else {
+            // Aliments personnalisés
+            const custom = JSON.parse(localStorage.getItem(LS_CUSTOM) || '[]');
+            const customIndex = foods.slice(visibleDefaults.length).findIndex(f => f.Nom === aliment.Nom);
+            if(customIndex >= 0){
+                custom[customIndex] = { Nom: newNom, Proteines: prot, Glucides: carb, Lipides: fat, Calories: cal, Categorie: cat };
+                localStorage.setItem(LS_CUSTOM, JSON.stringify(custom));
+            }
+        }
+
+        // Mettre à jour les plats si l'aliment est utilisé
+        const plats = getPlats().map(plat => {
+            let updated = false;
+            plat.ingredients.forEach(ing => {
+                if(ing.Nom === aliment.Nom){
+                    const qty = ing.Quantite; // conserver quantité existante
+                    ing.Nom = newNom;
+                    ing.Proteines = prot;
+                    ing.Glucides  = carb;
+                    ing.Lipides   = fat;
+                    ing.Calories  = cal;
+                    ing.Quantite  = qty;
+                    updated = true;
+                }
+            });
+            if(updated){
+                let totalProt=0, totalCarb=0, totalFat=0, totalCal=0;
+                plat.ingredients.forEach(i=>{
+                    const ratio = i.Quantite/100;
+                    totalProt += i.Proteines*ratio;
+                    totalCarb += i.Glucides*ratio;
+                    totalFat  += i.Lipides*ratio;
+                    totalCal  += i.Calories*ratio;
+                });
+                plat.totalProt = totalProt;
+                plat.totalCarb = totalCarb;
+                plat.totalFat  = totalFat;
+                plat.totalCal  = totalCal;
+            }
+            return plat;
+        });
+
+        localStorage.setItem(LS_PLATS, JSON.stringify(plats));
+
+        renderTable();
+        
+       // Avant render
+const platQuantities = {};
+$tbodyPlats.querySelectorAll('.plat-inp').forEach((inp,i)=>{
+    platQuantities[i] = parseFloat(inp.value) || 0;
+});
+
+// Render
+renderPlats();
+
+// Ré-appliquer les quantités
+$tbodyPlats.querySelectorAll('.plat-inp').forEach((inp,i)=>{
+    if(platQuantities[i] !== undefined) inp.value = platQuantities[i];
+});
+computeTotals(); // recalcul des macros
+
+        document.body.removeChild(modal);
+    };
+}
+
+
+
+
+function supprimerAliment(index){
+    const foods = getFoods();
+    if(index<0||index>=foods.length) return;
+    if(!confirm("Supprimer cet aliment ?")) return;
+
+    const defaultLen = defaultAliments.filter(f => !deletedDefaults.includes(f.Nom)).length;
+    const name = foods[index].Nom;
+
+    if(index >= defaultLen){
+        // Aliments personnalisés
+        let custom = JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]');
+        custom.splice(index - defaultLen, 1);
+        localStorage.setItem(LS_CUSTOM, JSON.stringify(custom));
+    } else {
+        // Aliments par défaut → ajouter à deletedDefaults
+        deletedDefaults.push(name);
+        localStorage.setItem("deletedDefaults", JSON.stringify(deletedDefaults));
+
+        // Supprime l’override si présent
+        let override = JSON.parse(localStorage.getItem('cm_aliments_override_v1')||'{}');
+        if(override[name]) delete override[name];
+        localStorage.setItem('cm_aliments_override_v1', JSON.stringify(override));
+    }
+
+    // Supprime quantité si existante
+    const qmap = getQuantities();
+    if(qmap.hasOwnProperty(name)){ delete qmap[name]; saveQuantities(qmap); }
+
+    // --- Supprimer macros de cet aliment dans les plats ---
+    const plats = getPlats().map(plat => {
+        plat.ingredients = plat.ingredients.filter(i => i.Nom !== name);
+        // recalcul des macros
+        let totalProt=0, totalCarb=0, totalFat=0, totalCal=0;
+        plat.ingredients.forEach(i=>{
+            const ratio = i.Quantite/100;
+            totalProt += i.Proteines*ratio;
+            totalCarb += i.Glucides*ratio;
+            totalFat  += i.Lipides*ratio;
+            totalCal  += i.Calories*ratio;
+        });
+        plat.totalProt = totalProt;
+        plat.totalCarb = totalCarb;
+        plat.totalFat  = totalFat;
+        plat.totalCal  = totalCal;
+        return plat;
+    });
+    savePlats(plats);
+
+    renderTable();
+     const platQuantities = {};
+    $tbodyPlats.querySelectorAll('.plat-inp').forEach((inp,i)=>{
+        platQuantities[i] = parseFloat(inp.value) || 0;
+    });
+
+    // 2️⃣ Appeler renderPlats()
+    renderPlats();
+
+    // 3️⃣ Ré-appliquer les quantités
+    $tbodyPlats.querySelectorAll('.plat-inp').forEach((inp,i)=>{
+        if(platQuantities[i] !== undefined) inp.value = platQuantities[i];
+    });
+}
+
+
+
+    function supprimerPlat(index){
+        if(!confirm("Supprimer ce plat ?")) return;
+        let plats = getPlats();
+        plats.splice(index,1);
+        savePlats(plats);
+        renderPlats();
+    }
+
+    // --- Ajouter Aliment ---
+    document.getElementById("btn-add").addEventListener("click",()=>{
+    const nom = document.getElementById("f-nom").value.trim();
+    const prot = parseFloat(document.getElementById("f-prot").value);
+    const carb = parseFloat(document.getElementById("f-carb").value);
+    const fat  = parseFloat(document.getElementById("f-fat").value);
+    const kcal = parseFloat(document.getElementById("f-kcal").value);
+    const cat  = document.getElementById("f-cat").value || "prot";
+
+    if(!nom || [prot, carb, fat, kcal].some(v => isNaN(v))){
+        alert("Complète tous les champs");
+        return;
+    }
+
+    const foods = getFoods();
+    if(foods.some(f => f.Nom.toLowerCase() === nom.toLowerCase())){
+        alert("Un aliment avec ce nom existe déjà !");
+        return;
+    }
+
+    const custom = JSON.parse(localStorage.getItem(LS_CUSTOM)||"[]");
+    custom.push({Nom:nom,Proteines:prot,Glucides:carb,Lipides:fat,Calories:kcal,Categorie:cat});
+    localStorage.setItem(LS_CUSTOM,JSON.stringify(custom));
+
+    ["f-nom","f-prot","f-carb","f-fat","f-kcal"].forEach(id=>document.getElementById(id).value="");
+    document.getElementById("f-cat").value="prot";
+
+    renderTable();
+});
+
+
+    document.getElementById("btn-clear-custom").addEventListener("click",()=>{
+        if(confirm("Supprimer tous tes aliments personnalisés ?")){
+            localStorage.removeItem(LS_CUSTOM);
+            renderTable();
+        }
+    });
+
+    // --- Ajouter Plat (nouveau) ---
+   document.getElementById("btn-add-plat").addEventListener("click", () => ouvrirPlatModal());
+
+
+    // ----- BARRE et TOTALS -----
+    function majBarre(id, valeur, objectif) {
+        const bar = document.getElementById(id);
+        // protect if objective is zero
+        const ratioPct = objectif > 0 ? (valeur / objectif) * 100 : 0;
+        const widthPct = Math.max(0, Math.min(100, ratioPct)); // clamp 0..100
+        bar.style.width = widthPct + "%";
+        // Affiche % réel (possible >100 arrondi) mais largeur limitée à 100%
+        const displayPct = Math.round(ratioPct);
+        bar.textContent = displayPct + "%";
+
+        // conserve les classes couleur et ajoute uniquement 'over' si besoin
+        bar.classList.remove("over");
+        // ensure the base class 'bar' remains
+        if(!bar.classList.contains('bar')) bar.classList.add('bar');
+        // assign color classes based on id
+        bar.classList.remove('prot','carb','fat','cal');
+        if(id === "barProt") bar.classList.add("prot");
+        if(id === "barCarb") bar.classList.add("carb");
+        if(id === "barFat")  bar.classList.add("fat");
+        if(id === "barCal")  bar.classList.add("cal");
+
+        if(valeur > objectif) {
+            bar.classList.add("over");
+        } else {
+            bar.classList.remove("over");
+        }
+    }
+
+    function computeTotals() {
+        const foods = getFoods();
+        const qmap = getQuantities();
+        let p=0,c=0,f=0,k=0;
+
+        // Ingrédients
+        foods.forEach(item => {
+            const q = qmap[item.Nom] || 0;
+            const ratio = q/100;
+            p += (item.Proteines || 0) * ratio;
+            c += (item.Glucides || 0) * ratio;
+            f += (item.Lipides || 0) * ratio;
+            k += (item.Calories || 0) * ratio;
+        });
+
+        // Plats (par portion)
+        const plats = getPlats();
+        // si aucun plat, $tbodyPlats peut être vide
+        $tbodyPlats.querySelectorAll('input[type="number"]').forEach((inp,i)=>{
+            const qty = parseFloat(inp.value)||0;
+            if(qty>0 && plats[i]){
+                const plat = plats[i];
+                p += (plat.totalProt || 0) * qty;
+                c += (plat.totalCarb || 0) * qty;
+                f += (plat.totalFat || 0) * qty;
+                k += (plat.totalCal || 0) * qty;
+            }
+        });
+
+        // Mise à jour affichage + dataset (pour sauvegarde fiable)
+        document.getElementById("t-prot").dataset.value = p;
+        document.getElementById("t-carb").dataset.value = c;
+        document.getElementById("t-fat").dataset.value = f;
+        document.getElementById("t-kcal").dataset.value = k;
+
+        document.getElementById("t-prot").textContent = p.toFixed(1) + " g";
+        document.getElementById("t-carb").textContent = c.toFixed(1) + " g";
+        document.getElementById("t-fat").textContent  = f.toFixed(1) + " g";
+        document.getElementById("t-kcal").textContent = Math.round(k) + " kcal";
+
+        majBarre("barProt", p, objectifs.prot);
+        majBarre("barCarb", c, objectifs.carb);
+        majBarre("barFat", f, objectifs.fat);
+        majBarre("barCal", k, objectifs.cal);
+    }
+
+    // Sauvegarde correcte avec valeurs numériques
+    function sauvegarderJournee(){
+        let data=JSON.parse(localStorage.getItem("historique")||"{}");
+        let today=new Date().toISOString().slice(0,10);
+        data[today]={
+            prot: parseFloat(document.getElementById("t-prot").dataset.value || 0),
+            carb: parseFloat(document.getElementById("t-carb").dataset.value || 0),
+            fat:  parseFloat(document.getElementById("t-fat").dataset.value || 0),
+            cal:  parseFloat(document.getElementById("t-kcal").dataset.value || 0)
+        };
+        localStorage.setItem("historique",JSON.stringify(data));
+        alert("Journée sauvegardée !");
+    }
+
+    function getCatIcon(cat){
+        switch(cat){
+            case "prot": return "🥩";
+            case "carb": return "🍚";
+            case "fat":  return "🥑";
+            default: return "❓";
+        }
+    }
+
+    function nouvelleJournee(){
+        sauvegarderJournee();
+        localStorage.removeItem(LS_QTY);
+        renderTable();
+        renderPlats();
+        alert("Nouvelle journée commencée !");
+    }
+
+    // --- Graphiques ---
+    let chart;
+    function ouvrirGraph(type){
+        const modal=document.getElementById("graphModal");
+        modal.style.display="block";
+        let data=JSON.parse(localStorage.getItem("historique")||"{}");
+        let jours=[],valeurs=[],objectif=objectifs[type];
+        for(let i=6;i>=0;i--){
+            let d=new Date();
+            d.setDate(d.getDate()-i);
+            let key=d.toISOString().slice(0,10);
+            jours.push(i);
+            valeurs.push(data[key]?data[key][type]:0);
+        }
+        if(chart) chart.destroy();
+        const ctx=document.getElementById("graphCanvas").getContext("2d");
+        chart=new Chart(ctx,{
+            type:"line",
+            data:{labels:jours,datasets:[
+                    {label:"Objectif",data:new Array(7).fill(objectif),borderColor:"red",borderDash:[5,5],fill:false},
+                    {label:"Réel",data:valeurs,borderColor:"blue",fill:false}
+                ]},
+            options:{responsive:true,scales:{x:{title:{display:true,text:"Jours (6 = il y a 6 jours ... 0 = aujourd'hui)"}},y:{beginAtZero:true}}}
+        });
+    }
+    function fermerGraph(){document.getElementById("graphModal").style.display="none";}
+
+    // --- Init: charger plats / custom foods from localStorage if absent create defaults ---
+    // (no destructive actions)
+    if(!localStorage.getItem(LS_CUSTOM)) localStorage.setItem(LS_CUSTOM, JSON.stringify([]));
+    if(!localStorage.getItem(LS_PLATS)) localStorage.setItem(LS_PLATS, JSON.stringify([]));
+    if(!localStorage.getItem(LS_QTY)) localStorage.setItem(LS_QTY, JSON.stringify({}));
+
+    // Listeners
+    $q.addEventListener("input",renderTable);
+    // Filtre par catégorie
+document.getElementById("filter-cat").addEventListener("change", renderTable);
+
+
+    // Render initial
+    renderTable();
+    renderPlats();
+    
+
+// Ouvrir la modal
+function ouvrirObjModal(){
+  const obj = getObj();
+  document.getElementById("obj-prot").value = obj.prot;
+  document.getElementById("obj-carb").value = obj.carb;
+  document.getElementById("obj-fat").value = obj.fat;
+  document.getElementById("obj-cal").value = obj.cal;
+  document.getElementById("objModal").style.display="block";
+}
+// --- Variables globales pour la modal plat ---
+// --- Variables globales pour la modal plat ---
+// --- Variables globales ---
+// Variables globales pour la modal plat
+let allIngredients = [];
+let currentPlatIndex = null;
+let checkedMap = {}; // Nom -> Quantité
+
+// Ouvrir modal plat (création ou modification)
+function ouvrirPlatModal(index = null){
+    currentPlatIndex = index;
+    const nomInput = document.getElementById("modal-p-nom");
+    const foods = getFoods();
+    allIngredients = foods.map(f => ({...f}));
+    checkedMap = {};
+
+    if(index !== null){
+        // Modification d'un plat existant
+        const plat = getPlats()[index];
+        nomInput.value = plat.Nom;
+        plat.ingredients.forEach(i => { checkedMap[i.Nom] = i.Quantite; });
+    } else {
+        // Nouveau plat
+        nomInput.value = "";
+    }
+
+    document.getElementById("ing-search").value = "";
+    document.getElementById("ing-filter").value = "";
+    renderIngredientsList();
+
+    // Listeners de recherche / filtre
+    document.getElementById("ing-search").oninput = renderIngredientsList;
+    document.getElementById("ing-filter").onchange = renderIngredientsList;
+
+    // Afficher la modal
+    document.getElementById("modal-plat").style.display = "block";
+}
+
+// Rendu ingrédients avec recherche & filtre
+function renderIngredientsList() {
+    const list = document.getElementById("ingredients-list");
+    const searchTerm = document.getElementById("ing-search").value.toLowerCase();
+    const catFilter = document.getElementById("ing-filter").value;
+
+    // MàJ checkedMap avant rerender
+    document.querySelectorAll("#ingredients-list .row").forEach(row => {
+        const cb = row.querySelector("input[type=checkbox]");
+        const qtyInput = row.querySelector("input[type=number]");
+        const idx = parseInt(cb.dataset.index);
+        const f = allIngredients[idx];
+        if(!f) return;
+        if(cb.checked && qtyInput.value) {
+            checkedMap[f.Nom] = parseFloat(qtyInput.value);
+        } else {
+            delete checkedMap[f.Nom];
+        }
+    });
+
+    list.innerHTML = "";
+
+    allIngredients.forEach((f, idx) => {
+        if (!f) return;
+        if (searchTerm && !f.Nom.toLowerCase().includes(searchTerm)) return;
+        if (catFilter && f.Categorie !== catFilter) return;
+
+        const checked = checkedMap[f.Nom] ? "checked" : "";
+        const qtyVal = checkedMap[f.Nom] || "";
+
+        const div = document.createElement("div");
+        div.className = "row";
+        div.innerHTML = `
+            <input type="checkbox" data-index="${idx}" ${checked}/> ${f.Nom}
+            <input type="number" placeholder="g" style="width:60px" data-index="${idx}" value="${qtyVal}">
+        `;
+        list.appendChild(div);
+
+        const cb = div.querySelector("input[type=checkbox]");
+        const qtyInput = div.querySelector("input[type=number]");
+
+        cb.addEventListener("change", () => {
+            if(cb.checked && qtyInput.value) checkedMap[f.Nom] = parseFloat(qtyInput.value);
+            else delete checkedMap[f.Nom];
+        });
+
+        qtyInput.addEventListener("input", () => {
+            if(cb.checked && qtyInput.value) checkedMap[f.Nom] = parseFloat(qtyInput.value);
+            else if(cb.checked) delete checkedMap[f.Nom];
+        });
+    });
+}
+
+// Sauvegarde plat
+document.getElementById("btn-save-plat").onclick = () => {
+    const nomInput = document.getElementById("modal-p-nom");
+    if (!nomInput) {
+        alert("Erreur: le champ pour le nom du plat est introuvable.");
+        return;
+    }
+    const nom = nomInput.value.trim();
+    if (!nom) {
+        alert("Le nom du plat est obligatoire.");
+        return;
+    }
+
+    const ingredients = [];
+    for(let nomIng in checkedMap){
+        const qty = checkedMap[nomIng];
+        if(qty > 0){
+            const f = allIngredients.find(f => f.Nom === nomIng);
+            if(f) ingredients.push({
+                Nom: f.Nom, Proteines: f.Proteines, Glucides: f.Glucides, 
+                Lipides: f.Lipides, Calories: f.Calories, Quantite: qty
+            });
+        }
+    }
+
+    if(ingredients.length === 0){ alert("Ajoute au moins un ingrédient."); return; }
+
+    let totalProt=0, totalCarb=0, totalFat=0, totalCal=0;
+    ingredients.forEach(i=>{
+        const ratio = i.Quantite / 100;
+        totalProt += i.Proteines*ratio;
+        totalCarb += i.Glucides*ratio;
+        totalFat  += i.Lipides*ratio;
+        totalCal  += i.Calories*ratio;
+    });
+
+    let plats = getPlats();
+    if(currentPlatIndex !== null){
+        plats[currentPlatIndex] = {Nom: nom, ingredients, totalProt, totalCarb, totalFat, totalCal};
+    } else {
+        plats.push({Nom: nom, ingredients, totalProt, totalCarb, totalFat, totalCal});
+    }
+
+    savePlats(plats);
+    document.getElementById("modal-plat").style.display = 'none';
+    renderPlats();
+    computeTotals();
+};
+
+
+
+
+// Fermer la modal
+function fermerObjModal(){
+  document.getElementById("objModal").style.display="none";
+}
+
+// Sauvegarder les nouveaux objectifs
+function sauverObj(){
+  const prot = parseFloat(document.getElementById("obj-prot").value) || 0;
+  const carb = parseFloat(document.getElementById("obj-carb").value) || 0;
+  const fat  = parseFloat(document.getElementById("obj-fat").value)  || 0;
+  const cal  = parseFloat(document.getElementById("obj-cal").value)  || 0;
+
+  const newObj = {prot, carb, fat, cal};
+  localStorage.setItem(LS_OBJ, JSON.stringify(newObj));
+  objectifs = newObj;
+
+  fermerObjModal();
+  computeTotals(); // recalcul avec les nouveaux objectifs
+  alert("Objectifs mis à jour !");
+}
+
+</script>
+
+<!-- Modal graphique -->
+<div id="graphModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="fermerGraph()">&times;</span>
+        <canvas id="graphCanvas"></canvas>
+    </div>
+</div>
+<div id="objModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="fermerObjModal()">&times;</span>
+    <h3>Modifier mes objectifs</h3>
+    <div class="row" style="flex-direction:column; gap:8px; margin-top:10px">
+      <label>Protéines (g) <input type="number" id="obj-prot"></label>
+      <label>Glucides (g) <input type="number" id="obj-carb"></label>
+      <label>Lipides (g) <input type="number" id="obj-fat"></label>
+      <label>Calories (kcal) <input type="number" id="obj-cal"></label>
+    </div>
+    <button class="primary" style="margin-top:12px" onclick="sauverObj()">✅ Sauvegarder</button>
+  </div>
+</div>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
