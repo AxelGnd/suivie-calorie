@@ -255,9 +255,13 @@
     // --- Données ---
     
    
-    const LS_CUSTOM="cm_foods_custom_v5";
-const LS_QTY="cm_quantities_v5";
-const LS_PLATS="cm_plats_v3";
+    // Anciennes clés (conservées uniquement pour la migration automatique des données existantes)
+    const LS_CUSTOM_LEGACY="cm_foods_custom_v5";
+    const LS_QTY_LEGACY="cm_quantities_v5";
+    // Nouvelles clés : un seul stockage unifié pour tous les aliments, identifiés par un id stable
+    const FOODS_KEY="cm_foods_v6";
+    const LS_QTY="cm_quantities_v6";
+    const LS_PLATS="cm_plats_v3";
 const defaultAliments = [
   { Nom: "Poulet (blanc, cuit)",          Proteines: 31.0, Glucides: 0.0,  Lipides: 3.6,  Calories: 165, Categorie: "prot" },
   { Nom: "Riz basmati (cuit)",           Proteines: 2.6,  Glucides: 28.0, Lipides: 0.3,  Calories: 130, Categorie: "carb" },
@@ -285,27 +289,8 @@ const defaultAliments = [
   { Nom: "Pois chiches (cuits)",         Proteines: 8.9,  Glucides:27.4,  Lipides: 2.6,  Calories:164,  Categorie: "carb" }
 ];
 
-    let deletedDefaults = JSON.parse(localStorage.getItem("deletedDefaults") || "[]");
-
-
-
-
 /* --- objectifs utilisateur (persistés) --- */
 const LS_OBJ = "cm_objectifs_v1";
-    
-    // --- Initialisation de base ---
-if(!localStorage.getItem(LS_CUSTOM)){
-  const base = [
-    { Nom:"Poulet (blanc, cuit)", Proteines:31, Glucides:0, Lipides:3.6, Calories:165, Categorie:"prot" },
-    { Nom:"Riz basmati (cuit)", Proteines:2.6, Glucides:28, Lipides:0.3, Calories:130, Categorie:"carb" },
-    { Nom:"Œuf entier", Proteines:12.6, Glucides:1.1, Lipides:9.5, Calories:143, Categorie:"prot" },
-    { Nom:"Fromage blanc 0%", Proteines:8, Glucides:4, Lipides:0.2, Calories:48, Categorie:"prot" },
-    { Nom:"Banane", Proteines:1.1, Glucides:23, Lipides:0.3, Calories:89, Categorie:"carb" },
-    { Nom:"Amandes", Proteines:21, Glucides:22, Lipides:50, Calories:579, Categorie:"fat" },
-    { Nom:"Huile d'olive", Proteines:0, Glucides:0, Lipides:100, Calories:900, Categorie:"fat" }
-  ];
-  localStorage.setItem(LS_CUSTOM, JSON.stringify(base));
-}
 
 function getObj(){
   return JSON.parse(localStorage.getItem(LS_OBJ)) || {prot:160, carb:220, fat:60, cal:2200};
@@ -313,6 +298,51 @@ function getObj(){
 // on initialise objectifs AVANT toute fonction qui s'en sert
 let objectifs = getObj();
 
+    // --- Génération d'identifiants stables ---
+    function genId(prefix){
+        return prefix + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8);
+    }
+
+    // --- Migration depuis l'ancien système (basé sur les noms) vers le nouveau (basé sur des id stables) ---
+    // Ne s'exécute qu'une seule fois : si FOODS_KEY n'existe pas encore.
+    function migrateToUnifiedFoods(){
+        if(localStorage.getItem(FOODS_KEY)) return; // déjà migré / nouvelle installation
+
+        const legacyDeleted = JSON.parse(localStorage.getItem("deletedDefaults") || "[]");
+        const legacyOverride = JSON.parse(localStorage.getItem('cm_aliments_override_v1') || '{}');
+        let legacyCustom = [];
+        try { legacyCustom = JSON.parse(localStorage.getItem(LS_CUSTOM_LEGACY) || "[]"); } catch(e){ legacyCustom = []; }
+        if(!Array.isArray(legacyCustom)) legacyCustom = [];
+
+        // Reconstruit les aliments par défaut en appliquant les anciennes modifications/suppressions,
+        // et en leur donnant un id stable et définitif.
+        const defaults = defaultAliments
+            .map((f,i) => ({ orig:f.Nom, id:"def_"+i, ...f, ...(legacyOverride[f.Nom]||{}), isDefault:true }))
+            .filter(f => !legacyDeleted.includes(f.orig))
+            .map(({orig, ...rest}) => rest);
+
+        const defaultNomsLower = defaults.map(f => f.Nom.toLowerCase());
+
+        // Les anciens "customs" contenaient parfois des doublons des aliments par défaut
+        // (bug de l'ancienne version) : on les filtre pour ne pas les réintroduire.
+        const customFoods = legacyCustom
+            .filter(f => f && f.Nom && !defaultNomsLower.includes(f.Nom.toLowerCase()))
+            .map((f,i) => ({ ...f, id: genId("custom_"+i), isDefault:false }));
+
+        const foods = [...defaults, ...customFoods];
+
+        // Migration des quantités (anciennement indexées par nom -> désormais par id)
+        const legacyQty = JSON.parse(localStorage.getItem(LS_QTY_LEGACY) || "{}");
+        const qtyById = {};
+        Object.keys(legacyQty).forEach(nom => {
+            const match = foods.find(f => f.Nom === nom);
+            if(match) qtyById[match.id] = legacyQty[nom];
+        });
+
+        localStorage.setItem(FOODS_KEY, JSON.stringify(foods));
+        localStorage.setItem(LS_QTY, JSON.stringify(qtyById));
+    }
+    migrateToUnifiedFoods();
 
     const $q=document.getElementById("q");
     const $tbody=document.querySelector("#tbl tbody");
@@ -329,19 +359,15 @@ let objectifs = getObj();
     });
 
     // --- Stockage ---
-    function getFoods(){ 
-    const custom = JSON.parse(localStorage.getItem(LS_CUSTOM) || "[]");
-    const override = JSON.parse(localStorage.getItem('cm_aliments_override_v1') || '{}');
-
-    const base = defaultAliments
-        .filter(f => !deletedDefaults.includes(f.Nom)) // <-- filtrage des supprimés
-        .map(f => override[f.Nom] || f);               // <-- applique les overrides si existants
-
-    return [...base, ...custom];
-}
-
-
-
+    // Chaque aliment possède désormais un id stable et unique (f.id), qui ne change jamais,
+    // même si on renomme l'aliment. Toutes les références (quantités, plats) s'appuient sur cet id.
+    function getFoods(){
+        if(!localStorage.getItem(FOODS_KEY)){
+            localStorage.setItem(FOODS_KEY, JSON.stringify(defaultAliments.map((f,i)=>({...f, id:"def_"+i, isDefault:true}))));
+        }
+        return JSON.parse(localStorage.getItem(FOODS_KEY) || "[]");
+    }
+    function saveFoods(list){ localStorage.setItem(FOODS_KEY, JSON.stringify(list)); }
 
     function getQuantities(){ return JSON.parse(localStorage.getItem(LS_QTY)||"{}"); }
     function saveQuantities(q){ localStorage.setItem(LS_QTY,JSON.stringify(q)); }
@@ -361,8 +387,8 @@ let objectifs = getObj();
     foods.filter(f => 
         (!term || f.Nom.toLowerCase().includes(term)) &&
         (!catFilter || f.Categorie === catFilter) // <--- filtrage
-    ).forEach((f, index) => {
-        const qty = qmap[f.Nom] || 0;
+    ).forEach((f) => {
+        const qty = qmap[f.id] || 0;
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td data-label="Aliment" style="text-align:left">${f.Nom}</td>
@@ -376,11 +402,11 @@ let objectifs = getObj();
                 </span>
             </td>
             <td data-label="Quantité (g)">
-                <input class="qty-inp" type="number" min="0" step="1" value="${qty}" data-name="${f.Nom}">
+                <input class="qty-inp" type="number" min="0" step="1" value="${qty}" data-id="${f.id}">
             </td>
             <td data-label="Actions">
-                <button onclick="modifierAliment(${index})">✏️</button>
-                <button onclick="supprimerAliment(${index})">❌</button>
+                <button onclick="modifierAliment('${f.id}')">✏️</button>
+                <button onclick="supprimerAliment('${f.id}')">❌</button>
             </td>
         `;
         tr.classList.add("fade-in");
@@ -391,7 +417,7 @@ let objectifs = getObj();
     $tbody.querySelectorAll(".qty-inp").forEach(inp=>{
         inp.addEventListener("input",()=>{
             const map = getQuantities();
-            map[inp.dataset.name] = Math.max(0, Number(inp.value || 0));
+            map[inp.dataset.id] = Math.max(0, Number(inp.value || 0));
             saveQuantities(map);
             computeTotals();
         });
@@ -430,10 +456,10 @@ let objectifs = getObj();
     }
 
     // --- Supprimer / Modifier aliments ---
-   function modifierAliment(index) {
+   function modifierAliment(id) {
     const foods = getFoods();
-    if (index < 0 || index >= foods.length) return;
-    const aliment = foods[index];
+    const aliment = foods.find(f => f.id === id);
+    if (!aliment) return;
 
     // Créer la modal
     const modal = document.createElement("div");
@@ -489,36 +515,29 @@ let objectifs = getObj();
             return;
         }
 
-        // Vérification doublon
-        if (newNom.toLowerCase() !== aliment.Nom.toLowerCase() &&
-            getFoods().some(f => f.Nom.toLowerCase() === newNom.toLowerCase())) {
+        // Vérification doublon (on exclut l'aliment qu'on est en train de modifier)
+        if (foods.some(f => f.id !== id && f.Nom.toLowerCase() === newNom.toLowerCase())) {
             alert("Un aliment avec ce nom existe déjà !");
             return;
         }
 
-        // Déterminer si c'est un aliment par défaut ou personnalisé
-        const visibleDefaults = defaultAliments.filter(f => !deletedDefaults.includes(f.Nom));
-        if (visibleDefaults.some(f => f.Nom === aliment.Nom)) {
-            // Aliments par défaut → override
-            const override = JSON.parse(localStorage.getItem('cm_aliments_override_v1') || '{}');
-            override[aliment.Nom] = { Nom: newNom, Proteines: prot, Glucides: carb, Lipides: fat, Calories: cal, Categorie: cat };
-            localStorage.setItem('cm_aliments_override_v1', JSON.stringify(override));
-        } else {
-            // Aliments personnalisés
-            const custom = JSON.parse(localStorage.getItem(LS_CUSTOM) || '[]');
-            const customIndex = foods.slice(visibleDefaults.length).findIndex(f => f.Nom === aliment.Nom);
-            if(customIndex >= 0){
-                custom[customIndex] = { Nom: newNom, Proteines: prot, Glucides: carb, Lipides: fat, Calories: cal, Categorie: cat };
-                localStorage.setItem(LS_CUSTOM, JSON.stringify(custom));
-            }
-        }
+        // Mise à jour de l'aliment en place (l'id ne change jamais, donc les quantités
+        // déjà saisies pour cet aliment restent liées correctement même après renommage)
+        aliment.Nom = newNom;
+        aliment.Proteines = prot;
+        aliment.Glucides = carb;
+        aliment.Lipides = fat;
+        aliment.Calories = cal;
+        aliment.Categorie = cat;
+        saveFoods(foods);
 
-        // Mettre à jour les plats si l'aliment est utilisé
+        // Mettre à jour les plats qui utilisent cet aliment (référencé par id)
         const plats = getPlats().map(plat => {
             let updated = false;
             plat.ingredients.forEach(ing => {
-                if(ing.Nom === aliment.Nom){
+                if(ing.id === id || (!ing.id && ing.Nom === aliment.Nom)){
                     const qty = ing.Quantite; // conserver quantité existante
+                    ing.id = id;
                     ing.Nom = newNom;
                     ing.Proteines = prot;
                     ing.Glucides  = carb;
@@ -571,33 +590,18 @@ computeTotals(); // recalcul des macros
 
 
 
-function supprimerAliment(index){
+function supprimerAliment(id){
     const foods = getFoods();
-    if(index<0||index>=foods.length) return;
+    const aliment = foods.find(f => f.id === id);
+    if(!aliment) return;
     if(!confirm("Supprimer cet aliment ?")) return;
 
-    const defaultLen = defaultAliments.filter(f => !deletedDefaults.includes(f.Nom)).length;
-    const name = foods[index].Nom;
+    const name = aliment.Nom;
+    saveFoods(foods.filter(f => f.id !== id));
 
-    if(index >= defaultLen){
-        // Aliments personnalisés
-        let custom = JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]');
-        custom.splice(index - defaultLen, 1);
-        localStorage.setItem(LS_CUSTOM, JSON.stringify(custom));
-    } else {
-        // Aliments par défaut → ajouter à deletedDefaults
-        deletedDefaults.push(name);
-        localStorage.setItem("deletedDefaults", JSON.stringify(deletedDefaults));
-
-        // Supprime l’override si présent
-        let override = JSON.parse(localStorage.getItem('cm_aliments_override_v1')||'{}');
-        if(override[name]) delete override[name];
-        localStorage.setItem('cm_aliments_override_v1', JSON.stringify(override));
-    }
-
-    // Supprime quantité si existante
+    // Supprime quantité si existante (indexée par id)
     const qmap = getQuantities();
-    if(qmap.hasOwnProperty(name)){ delete qmap[name]; saveQuantities(qmap); }
+    if(qmap.hasOwnProperty(id)){ delete qmap[id]; saveQuantities(qmap); }
 
     // --- Supprimer macros de cet aliment dans les plats ---
     const plats = getPlats().map(plat => {
@@ -664,9 +668,8 @@ function supprimerAliment(index){
         return;
     }
 
-    const custom = JSON.parse(localStorage.getItem(LS_CUSTOM)||"[]");
-    custom.push({Nom:nom,Proteines:prot,Glucides:carb,Lipides:fat,Calories:kcal,Categorie:cat});
-    localStorage.setItem(LS_CUSTOM,JSON.stringify(custom));
+    foods.push({id: genId("custom"), Nom:nom, Proteines:prot, Glucides:carb, Lipides:fat, Calories:kcal, Categorie:cat, isDefault:false});
+    saveFoods(foods);
 
     ["f-nom","f-prot","f-carb","f-fat","f-kcal"].forEach(id=>document.getElementById(id).value="");
     document.getElementById("f-cat").value="prot";
@@ -677,7 +680,13 @@ function supprimerAliment(index){
 
     document.getElementById("btn-clear-custom").addEventListener("click",()=>{
         if(confirm("Supprimer tous tes aliments personnalisés ?")){
-            localStorage.removeItem(LS_CUSTOM);
+            const remaining = getFoods().filter(f => f.isDefault);
+            saveFoods(remaining);
+            // Nettoie les quantités des aliments personnalisés supprimés
+            const remainingIds = new Set(remaining.map(f => f.id));
+            const qmap = getQuantities();
+            Object.keys(qmap).forEach(id => { if(!remainingIds.has(id)) delete qmap[id]; });
+            saveQuantities(qmap);
             renderTable();
         }
     });
@@ -722,7 +731,7 @@ function supprimerAliment(index){
 
         // Ingrédients
         foods.forEach(item => {
-            const q = qmap[item.Nom] || 0;
+            const q = qmap[item.id] || 0;
             const ratio = q/100;
             p += (item.Proteines || 0) * ratio;
             c += (item.Glucides || 0) * ratio;
@@ -819,9 +828,7 @@ function supprimerAliment(index){
     }
     function fermerGraph(){document.getElementById("graphModal").style.display="none";}
 
-    // --- Init: charger plats / custom foods from localStorage if absent create defaults ---
-    // (no destructive actions)
-    if(!localStorage.getItem(LS_CUSTOM)) localStorage.setItem(LS_CUSTOM, JSON.stringify([]));
+    // --- Init: charger plats / aliments depuis le localStorage, sans action destructive ---
     if(!localStorage.getItem(LS_PLATS)) localStorage.setItem(LS_PLATS, JSON.stringify([]));
     if(!localStorage.getItem(LS_QTY)) localStorage.setItem(LS_QTY, JSON.stringify({}));
 
@@ -851,7 +858,7 @@ function ouvrirObjModal(){
 // Variables globales pour la modal plat
 let allIngredients = [];
 let currentPlatIndex = null;
-let checkedMap = {}; // Nom -> Quantité
+let checkedMap = {}; // id de l'aliment -> Quantité
 
 // Ouvrir modal plat (création ou modification)
 function ouvrirPlatModal(index = null){
@@ -865,7 +872,11 @@ function ouvrirPlatModal(index = null){
         // Modification d'un plat existant
         const plat = getPlats()[index];
         nomInput.value = plat.Nom;
-        plat.ingredients.forEach(i => { checkedMap[i.Nom] = i.Quantite; });
+        plat.ingredients.forEach(i => {
+            // Compatibilité : anciens plats enregistrés sans id (on retrouve l'aliment par son nom)
+            const match = allIngredients.find(f => f.id === i.id) || allIngredients.find(f => f.Nom === i.Nom);
+            if(match) checkedMap[match.id] = i.Quantite;
+        });
     } else {
         // Nouveau plat
         nomInput.value = "";
@@ -897,9 +908,9 @@ function renderIngredientsList() {
         const f = allIngredients[idx];
         if(!f) return;
         if(cb.checked && qtyInput.value) {
-            checkedMap[f.Nom] = parseFloat(qtyInput.value);
+            checkedMap[f.id] = parseFloat(qtyInput.value);
         } else {
-            delete checkedMap[f.Nom];
+            delete checkedMap[f.id];
         }
     });
 
@@ -910,8 +921,8 @@ function renderIngredientsList() {
         if (searchTerm && !f.Nom.toLowerCase().includes(searchTerm)) return;
         if (catFilter && f.Categorie !== catFilter) return;
 
-        const checked = checkedMap[f.Nom] ? "checked" : "";
-        const qtyVal = checkedMap[f.Nom] || "";
+        const checked = checkedMap[f.id] ? "checked" : "";
+        const qtyVal = checkedMap[f.id] || "";
 
         const div = document.createElement("div");
         div.className = "row";
@@ -925,13 +936,13 @@ function renderIngredientsList() {
         const qtyInput = div.querySelector("input[type=number]");
 
         cb.addEventListener("change", () => {
-            if(cb.checked && qtyInput.value) checkedMap[f.Nom] = parseFloat(qtyInput.value);
-            else delete checkedMap[f.Nom];
+            if(cb.checked && qtyInput.value) checkedMap[f.id] = parseFloat(qtyInput.value);
+            else delete checkedMap[f.id];
         });
 
         qtyInput.addEventListener("input", () => {
-            if(cb.checked && qtyInput.value) checkedMap[f.Nom] = parseFloat(qtyInput.value);
-            else if(cb.checked) delete checkedMap[f.Nom];
+            if(cb.checked && qtyInput.value) checkedMap[f.id] = parseFloat(qtyInput.value);
+            else if(cb.checked) delete checkedMap[f.id];
         });
     });
 }
@@ -950,12 +961,12 @@ document.getElementById("btn-save-plat").onclick = () => {
     }
 
     const ingredients = [];
-    for(let nomIng in checkedMap){
-        const qty = checkedMap[nomIng];
+    for(let idIng in checkedMap){
+        const qty = checkedMap[idIng];
         if(qty > 0){
-            const f = allIngredients.find(f => f.Nom === nomIng);
+            const f = allIngredients.find(f => f.id === idIng);
             if(f) ingredients.push({
-                Nom: f.Nom, Proteines: f.Proteines, Glucides: f.Glucides, 
+                id: f.id, Nom: f.Nom, Proteines: f.Proteines, Glucides: f.Glucides, 
                 Lipides: f.Lipides, Calories: f.Calories, Quantite: qty
             });
         }
@@ -1034,15 +1045,3 @@ function sauverObj(){
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
