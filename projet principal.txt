@@ -1,0 +1,328 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <ctype.h>
+#include <time.h>
+#include <unistd.h>
+#define MAX_POINTS 10000 // Nombre maximal de points détectés
+#define temps_chrono 300 // temps qu'il reste au joueur
+
+/*
+    Implementation simple timeout
+
+    Input: count milliseconds as number
+
+    Usage:
+        setTimeout(1000) - timeout on 1 second
+        setTimeout(10100) - timeout on 10 seconds and 100 milliseconds
+ */
+void setTimeout(int milliseconds)
+{
+    // If milliseconds is less or equal to 0
+    // will be simple return from function without throw error
+    if (milliseconds <= 0) {
+        fprintf(stderr, "Count milliseconds for timeout is less or equal to 0\n");
+        return;
+    }
+
+    // a current time of milliseconds
+    int milliseconds_since = clock() * 1000 / CLOCKS_PER_SEC;
+
+    // needed count milliseconds of return from this timeout
+    int end = milliseconds_since + milliseconds;
+
+    // wait while until needed time comes
+    do {
+        milliseconds_since = clock() * 1000 / CLOCKS_PER_SEC;
+    } while (milliseconds_since <= end);
+}
+
+
+
+
+
+
+
+// Fonction pour trouver toutes les suites et renvoyer leurs coordonnées
+int** findSequences(char** matrix, int h, int l, int* pointCount) {
+    bool marked[h][l]; // Tableau pour marquer les positions des suites
+    for (int i = 0; i < h; i++)
+        for (int j = 0; j < l; j++)
+            marked[i][j] = false;
+
+    // Vérification horizontale
+    for (int i = 0; i < h; i++) {
+        int start = 0; // Début d'une suite
+        for (int j = 1; j <= l; j++) { // On inclut un élément hors matrice pour finir les suites
+            if (j == l || matrix[i][j] != matrix[i][start] && matrix[i][j]!=' ') {
+                if (j - start > 3) { // Suite valide
+                    for (int k = start; k < j; k++) {
+                        marked[i][k] = true;
+                    }
+                }
+                start = j;
+            }
+        }
+    }
+
+    // Vérification verticale
+    for (int j = 0; j < l; j++) {
+        int start = 0; // Début d'une suite
+        for (int i = 1; i <= h; i++) { // On inclut un élément hors matrice pour finir les suites
+            if (i == h || matrix[i][j] != matrix[start][j]) {
+                if (i - start > 3) { // Suite valide
+                    for (int k = start; k < i; k++) {
+                        marked[k][j] = true;
+                    }
+                }
+                start = i;
+            }
+        }
+    }
+
+    // Allocation dynamique pour le résultat
+    int** result = (int**)malloc(2 * sizeof(int*));
+    result[0] = (int*)malloc(MAX_POINTS * sizeof(int)); // Coordonnées x
+    result[1] = (int*)malloc(MAX_POINTS * sizeof(int)); // Coordonnées y
+    *pointCount = 0;
+
+    // Collecter toutes les coordonnées marquées
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < l; j++) {
+            if (marked[i][j]) {
+                if (*pointCount >= MAX_POINTS) break;
+                result[0][*pointCount] = i; // Ligne
+                result[1][*pointCount] = j; // Colonne
+                (*pointCount)++;
+            }
+        }
+    }
+
+    return result;
+}
+
+int longueur()
+{
+    int réponse=0;
+    do{
+        printf("quelle longueur doit faire votre plateau, entre 8 et 12\n ");
+        scanf("%d",&réponse);
+    }while (réponse<8 || réponse>12);
+    return réponse;
+}
+
+
+int hauteur()
+{
+    int réponse;
+    do{
+        printf("quelle hauteur doit faire votre plateau, entre 4 et 6\n ");
+        scanf("%d",&réponse);
+    }while (réponse<4 || réponse>6);
+    return réponse;
+}
+
+void **afficher(int h, int l,char **matrice)
+{
+    printf("  ");
+    for (int e=0; e<l; e++)
+    {
+        printf("%d ",e);
+    }
+    printf("\n");
+    for (int i=0; i<h; i++)
+    {
+        printf("%d ",i);
+        for (int j=0; j<l; j++)
+        {
+            printf("%c ",matrice[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+char **suprimer_suite(char **matrice, int **coordonnés_suite, int pointCount)
+{
+    int a,b;
+    for (int i=0; i<pointCount; i++)
+    {
+        a=coordonnés_suite[0][i];
+        b=coordonnés_suite[1][i];
+        matrice[a][b]=' ';
+    }
+    return matrice;
+}
+
+char **tombé(int h, int l, char **matrice)
+{
+    for (int repet=0; repet<h; repet++){
+        for (int i=0; i<(h-1); i++)
+        {
+            for (int j=0; j<l; j++)
+            {
+                if (matrice[i+1][j]==' ')
+                {
+                    matrice[i+1][j]=matrice[i][j];
+                    matrice[i][j]=' ';
+                }
+            }
+        }
+    }
+    return matrice;
+}
+
+void **echange(char **mat, int h, int l)
+{ 
+    int col1=0, col2=0, ligne1=0, ligne2=0;
+    char v1 = 'a'; 
+    do{
+        printf("\n\nIl faut que les caractère choisis soit cote à cote et pas en diagonale.\n\n");
+        printf("Quelle colonne, en partant de 0, voulez vous selectionner?\n\n");
+        scanf("%d",&col1);
+        printf("Quelle ligne, en partant de 0, voulez vous selectionner?\n\n");
+        scanf("%d",&ligne1);
+        printf("Quelle colonne, en partant de 0, voulez vous selectionner pour le second caractère?\n\n");
+        scanf("%d",&col2);
+        printf("Quelle ligne, en partant de 0, voulez vous selectionner pour le second caractère?\n\n");
+        scanf("%d",&ligne2);
+    }while(((col1!=(col2-1) && col1!=(col2+1)) && (ligne1!=(ligne2+1) && ligne1!=(ligne2-1))));
+    v1 = mat[ligne1][col1];
+    mat[ligne1][col1] = mat[ligne2][col2];
+    mat[ligne2][col2] = v1;
+}
+
+char **ma(int hauteur, int longueur)
+{
+    srand(time(0));
+    int i,p;
+    char **matrice_jeu;
+ 
+    // Allocation de l'espace pour stocker 100 pointeurs
+    matrice_jeu=malloc(hauteur * sizeof(char*));
+ 
+    // Allocation de chaque pointeur pour stocker 100 int
+    for (i=0; i < hauteur; i++)
+    {
+        matrice_jeu[i]=malloc(longueur * sizeof(char));
+    }
+    for (int i=0; i<hauteur; i++)
+    {
+        for (int j=0; j<longueur; j++)
+        {
+            p=rand()%4;
+            switch (p)
+            {
+                case 0:
+                    matrice_jeu[i][j]='A';
+                    break;
+                case 1:
+                    matrice_jeu[i][j]='B';
+                    break;
+                case 2:
+                    matrice_jeu[i][j]='C';
+                     break;
+                case 3:
+                    matrice_jeu[i][j]='D';
+                    break;
+            }
+        }
+    }
+    return matrice_jeu;
+}
+
+
+int points(int* score,int* nb_suite, int* taille)
+{
+    score=score+((*nb_suite+(1))*((*taille+(1))^2));
+    return *score;
+}
+
+
+
+
+int menu()
+{
+    int u;
+    do{
+        printf("que souhaitez-vous faire ?\n");
+        printf("Démarer une partie : 0 \n");
+        printf("Voir le meilleur score : 1 \n");
+        printf("Quitter : 2 \n");
+        scanf("%d", &u);
+    }while (u==0 && u==1 && u==2);
+    return u;
+}
+
+int type()
+{
+    int tipe;
+    printf("A quel mode de jeu voulez vous jouer ?\n");
+    printf("Mode puzzle : 0\n");
+    printf("Mode rush : 1\n");
+    scanf("%d", &tipe);
+    return tipe;
+}
+
+
+
+
+int main()
+{
+    int u, terminer=1, tipe=0;
+    // input from user for time of delay in seconds
+    
+    do {
+        
+            u=menu();
+            int delay=temps_chrono;
+            switch (u)
+            {
+                case 0:
+                    int delay=temps_chrono;
+                    int l=0, h=0, a=0;
+                    l=longueur();
+                    h=hauteur();
+                    tipe=type();
+                    if (tipe==0)
+                    {   
+                            char **matrice;
+                            matrice=ma(h,l);
+                            afficher(h,l,matrice);
+                            printf("\n\n\n");
+                            while (a==0)
+                            {
+                                echange(matrice,h,l);
+                                int pointCount=0; // Nombre total de points détectés
+                			    // Trouver les suites
+                			    int** result = findSequences(matrice, h, l, &pointCount);
+                                suprimer_suite(matrice, result, pointCount);
+                                tombé(h,l,matrice);
+                                afficher(h,l,matrice);
+                                //printf("%d, %d\n", nb_suite,taille);
+                                //points(score,nb_suite,taille);
+                                //printf("%d", score);
+                                if (pointCount==0)
+                                {
+                                    a=1;
+                                }
+                                
+                            }
+                    }else{
+                        //do{
+                        //mode de jeu deux
+                        //printf("il reste %d seconde !!!\n", delay);
+                    //
+                    }
+                break;
+            case 1:
+                //meilleur_score()
+                break;
+            case 2:
+                terminer=0;
+                break;
+            }
+    } while (terminer!=0);
+    
+    return 0;
+}
