@@ -90,7 +90,14 @@ els.authForm.addEventListener("submit", async (e) => {
 
   els.authSubmit.disabled = true;
   try {
-    if (mode === "login") {
+    if (mode === "update_password") {
+      const { error } = await supabaseClient.auth.updateUser({ password: password });
+      if (error) throw error;
+      afficherMessageAuth("Mot de passe mis à jour avec succès !", "info");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else if (mode === "login") {
       await signIn(email, password);
     } else {
       const data = await signUp(email, password);
@@ -152,8 +159,20 @@ async function afficherApp(session) {
   afficherEcran("app");
 }
 
-onAuthStateChange((session) => {
-  if (session) {
+onAuthStateChange((event, session) => {
+  if (event === "PASSWORD_RECOVERY") {
+    // L'utilisateur vient de cliquer sur le lien du mail de réinitialisation
+    afficherEcran("auth");
+    els.authTitle.textContent = "Nouveau mot de passe";
+    els.authSubtitle.textContent = "Saisis ton nouveau mot de passe ci-dessous.";
+    els.authSubmit.textContent = "Mettre à jour le mot de passe";
+    if (els.authForgotBtn) els.authForgotBtn.style.display = "none";
+    if (els.authSwitchText) els.authSwitchText.style.display = "none";
+    if (els.authSwitchBtn) els.authSwitchBtn.style.display = "none";
+    
+    // On passe le formulaire en mode spécial "update_password"
+    mode = "update_password";
+  } else if (session) {
     afficherApp(session);
   } else {
     currentUserId = null;
