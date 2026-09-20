@@ -88,15 +88,22 @@ els.authForm.addEventListener("submit", async (e) => {
   const email = els.authEmail.value.trim();
   const password = els.authPassword.value;
 
+  // Validation uniquement à l'inscription ou à la mise à jour
+  if (mode === "signup" || mode === "update_password") {
+    const erreurMDP = verifierSecuriteMotDePasse(password);
+    if (erreurMDP) {
+      afficherMessageAuth(erreurMDP, "error");
+      return;
+    }
+  }
+
   els.authSubmit.disabled = true;
   try {
     if (mode === "update_password") {
       const { error } = await supabaseClient.auth.updateUser({ password: password });
       if (error) throw error;
       afficherMessageAuth("Mot de passe mis à jour avec succès !", "info");
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      setTimeout(() => { window.location.reload(); }, 1500);
     } else if (mode === "login") {
       await signIn(email, password);
     } else {
