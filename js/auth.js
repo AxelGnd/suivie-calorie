@@ -2,8 +2,6 @@ import { supabaseClient } from "./supabaseClient.js";
 
 /**
  * Inscription d'un nouvel utilisateur.
- * Le trigger SQL (handle_new_user) crée automatiquement sa ligne
- * de profil dès que le compte est créé côté Supabase.
  */
 export async function signUp(email, password) {
   const { data, error } = await supabaseClient.auth.signUp({ email, password });
@@ -28,12 +26,14 @@ export async function getSession() {
   return data.session;
 }
 
-/**
- * S'abonne aux changements d'état de connexion (connexion, déconnexion,
- * session restaurée au chargement, jeton rafraîchi...).
- * @param {(session: object|null) => void} callback
- * @returns {() => void} fonction pour se désabonner
- */
+export async function resetPasswordEmail(email) {
+  const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export function onAuthStateChange(callback) {
   const { data } = supabaseClient.auth.onAuthStateChange((_event, session) => {
     callback(session);
@@ -41,10 +41,6 @@ export function onAuthStateChange(callback) {
   return () => data.subscription.unsubscribe();
 }
 
-/**
- * Traduit les messages d'erreur Supabase les plus courants en français
- * compréhensible, plutôt que d'afficher le message technique brut.
- */
 export function messageErreurAuth(error) {
   const msg = (error && error.message) || "";
   if (msg.includes("Invalid login credentials")) return "Email ou mot de passe incorrect.";
