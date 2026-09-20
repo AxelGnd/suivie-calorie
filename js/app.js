@@ -150,7 +150,16 @@ function rendreSelecteurTheme(themeActif) {
     els.themeGrid.appendChild(btn);
   });
 }
+function verifierSecuriteMotDePasse(password) {
+  const aMinuscule = /[a-z]/.test(password);
+  const aMajuscule = /[A-Z]/.test(password);
+  const aChiffre = /[0-9]/.test(password);
 
+  if (!aMinuscule || !aMajuscule || !aChiffre || password.length < 6) {
+    return "Le mot de passe doit contenir au moins 6 caractères, une majuscule, une minuscule et un chiffre.";
+  }
+  return null;
+}
 async function afficherApp(session) {
   currentUserId = session.user.id;
   els.userEmail.textContent = session.user.email;
