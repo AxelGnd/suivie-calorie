@@ -16,4 +16,4 @@ export const supabaseClient = window.supabase.createClient(
   SUPABASE_ANON_KEY
 );
 
-export const isConfigured = true;
+export const isConfigured = true; 
