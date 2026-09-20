@@ -1,8 +1,7 @@
-import { signUp, signIn, signOut, getSession, onAuthStateChange, messageErreurAuth } from "./auth.js";
+import { signUp, signIn, signOut, getSession, onAuthStateChange, messageErreurAuth, resetPasswordEmail } from "./auth.js";
 import { THEMES, applyTheme, getCachedTheme, chargerThemeDepuisProfil, changerTheme } from "./theme.js";
 
 // Applique tout de suite un thème (cache local) pour éviter un flash
-// non stylé pendant que Supabase répond.
 applyTheme(getCachedTheme());
 
 const els = {
@@ -18,6 +17,7 @@ const els = {
   authMessageArea: document.getElementById("auth-message-area"),
   authSwitchText: document.getElementById("auth-switch-text"),
   authSwitchBtn: document.getElementById("auth-switch-btn"),
+  authForgotBtn: document.getElementById("auth-forgot-btn"),
   userEmail: document.getElementById("user-email"),
   btnLogout: document.getElementById("btn-logout"),
   themeGrid: document.getElementById("theme-grid"),
@@ -47,16 +47,34 @@ function basculerMode() {
     els.authSubmit.textContent = "Créer mon compte";
     els.authSwitchText.textContent = "Déjà un compte ?";
     els.authSwitchBtn.textContent = "Se connecter";
+    if (els.authForgotBtn) els.authForgotBtn.style.display = "none";
   } else {
     els.authTitle.textContent = "Connexion";
     els.authSubtitle.textContent = "Accède à tes données, synchronisées partout.";
     els.authSubmit.textContent = "Se connecter";
     els.authSwitchText.textContent = "Pas encore de compte ?";
     els.authSwitchBtn.textContent = "Créer un compte";
+    if (els.authForgotBtn) els.authForgotBtn.style.display = "inline-block";
   }
 }
 
 els.authSwitchBtn.addEventListener("click", basculerMode);
+
+if (els.authForgotBtn) {
+  els.authForgotBtn.addEventListener("click", async () => {
+    const email = els.authEmail.value.trim();
+    if (!email) {
+      afficherMessageAuth("Entre ton adresse e-mail ci-dessus puis réessaie.", "error");
+      return;
+    }
+    try {
+      await resetPasswordEmail(email);
+      afficherMessageAuth("Un e-mail de réinitialisation vient de t'être envoyé !", "info");
+    } catch (error) {
+      afficherMessageAuth(messageErreurAuth(error), "error");
+    }
+  });
+}
 
 els.authForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -68,19 +86,16 @@ els.authForm.addEventListener("submit", async (e) => {
   try {
     if (mode === "login") {
       await signIn(email, password);
-      // onAuthStateChange se charge d'afficher l'écran app
     } else {
       const data = await signUp(email, password);
       if (data.session) {
-        // Confirmation email désactivée sur ce projet : connexion immédiate.
-        // On repasse quand même le formulaire en mode "connexion" pour la prochaine fois.
         mode = "login";
       } else {
         afficherMessageAuth(
           "Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse avant de te connecter.",
           "info"
         );
-        basculerMode(); // repasse en mode connexion
+        basculerMode();
       }
     }
   } catch (error) {
@@ -141,7 +156,6 @@ onAuthStateChange((session) => {
   }
 });
 
-// État initial au chargement de la page
 (async function init() {
   try {
     const session = await getSession();
