@@ -46,6 +46,9 @@ export function messageErreurAuth(error) {
   if (msg.includes("Invalid login credentials")) return "Email ou mot de passe incorrect.";
   if (msg.includes("User already registered")) return "Un compte existe déjà avec cet email.";
   if (msg.includes("Password should be at least")) return "Le mot de passe doit faire au moins 6 caractères.";
+  if (msg.includes("Password should contain") || msg.includes("password policy")) {
+    return "Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre.";
+  }
   if (msg.includes("Unable to validate email address")) return "Adresse email invalide.";
   if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) return "Impossible de contacter le serveur, vérifie ta connexion internet.";
   return msg || "Une erreur inattendue est survenue.";
