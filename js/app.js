@@ -64,14 +64,20 @@ if (els.authForgotBtn) {
   els.authForgotBtn.addEventListener("click", async () => {
     const email = els.authEmail.value.trim();
     if (!email) {
-      afficherMessageAuth("Entre ton adresse e-mail ci-dessus puis réessaie.", "error");
+      afficherMessageAuth("Renseigne ton adresse e-mail ci-dessus puis réessaie.", "error");
       return;
     }
+
+    els.authForgotBtn.disabled = true;
+    afficherMessageAuth("Envoi du lien en cours...", "info");
+
     try {
       await resetPasswordEmail(email);
-      afficherMessageAuth("Un e-mail de réinitialisation vient de t'être envoyé !", "info");
+      afficherMessageAuth("Un e-mail de réinitialisation vient de t'être envoyé ! Vérifie tes spams si besoin.", "info");
     } catch (error) {
       afficherMessageAuth(messageErreurAuth(error), "error");
+    } finally {
+      els.authForgotBtn.disabled = false;
     }
   });
 }
