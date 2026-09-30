@@ -1,4 +1,4 @@
-import { signUp, signIn, signOut, getSession, onAuthStateChange, messageErreurAuth, resetPasswordEmail } from "./auth.js";
+import { signUp, signIn, signOut, getSession, onAuthStateChange, messageErreurAuth, resetPasswordEmail, updatePassword } from "./auth.js";
 import { THEMES, applyTheme, getCachedTheme, chargerThemeDepuisProfil, changerTheme } from "./theme.js";
 
 // Applique tout de suite un thème (cache local) pour éviter un flash
@@ -100,8 +100,7 @@ els.authForm.addEventListener("submit", async (e) => {
   els.authSubmit.disabled = true;
   try {
     if (mode === "update_password") {
-      const { error } = await supabaseClient.auth.updateUser({ password: password });
-      if (error) throw error;
+      await updatePassword(password);
       afficherMessageAuth("Mot de passe mis à jour avec succès !", "info");
       setTimeout(() => { window.location.reload(); }, 1500);
     } else if (mode === "login") {
