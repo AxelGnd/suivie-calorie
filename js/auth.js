@@ -33,10 +33,14 @@ export async function resetPasswordEmail(email) {
   if (error) throw error;
   return data;
 }
+export async function updatePassword(newPassword) {
+  const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
 
 export function onAuthStateChange(callback) {
-  const { data } = supabaseClient.auth.onAuthStateChange((_event, session) => {
-    callback(session);
+  const { data } = supabaseClient.auth.onAuthStateChange((event, session) => {
+    callback(event, session);
   });
   return () => data.subscription.unsubscribe();
 }
