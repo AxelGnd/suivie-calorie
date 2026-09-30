@@ -28,7 +28,7 @@ export async function getSession() {
 
 export async function resetPasswordEmail(email) {
   const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin,
+    redirectTo: window.location.origin + window.location.pathname,
   });
   if (error) throw error;
   return data;
