@@ -204,9 +204,14 @@ onAuthStateChange((event, session) => {
 });
 
 (async function init() {
+  // Si l'URL contient un lien de récupération de mot de passe, on ne touche
+  // à rien ici : seul le gestionnaire PASSWORD_RECOVERY doit décider de
+  // l'écran à afficher, pour éviter toute course avec une session existante.
+  if (window.location.hash.includes("type=recovery")) return;
+
   try {
     const session = await getSession();
-    if (enRecuperation) return; // on est en pleine récupération, ne pas écraser cet écran
+    if (enRecuperation) return;
     if (session) {
       await afficherApp(session);
     } else {
