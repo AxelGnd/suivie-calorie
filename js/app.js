@@ -173,10 +173,10 @@ async function afficherApp(session) {
   rendreSelecteurTheme(themeActif || getCachedTheme() || THEMES[0].key);
   afficherEcran("app");
 }
-
+let enRecuperation = false;
 onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") {
-    // L'utilisateur vient de cliquer sur le lien du mail de réinitialisation
+    enRecuperation = true;
     afficherEcran("auth");
     els.authTitle.textContent = "Nouveau mot de passe";
     els.authSubtitle.textContent = "Saisis ton nouveau mot de passe ci-dessous.";
@@ -184,10 +184,16 @@ onAuthStateChange((event, session) => {
     if (els.authForgotBtn) els.authForgotBtn.style.display = "none";
     if (els.authSwitchText) els.authSwitchText.style.display = "none";
     if (els.authSwitchBtn) els.authSwitchBtn.style.display = "none";
-    
-    // On passe le formulaire en mode spécial "update_password"
     mode = "update_password";
-  } else if (session) {
+    return;
+  }
+  if (enRecuperation) {
+    // On ignore les événements suivants (connexion automatique déclenchée
+    // par Supabase) tant que le nouveau mot de passe n'a pas été validé,
+    // sinon l'appli retourne au tableau de bord avant que l'utilisateur ait pu agir.
+    return;
+  }
+  if (session) {
     afficherApp(session);
   } else {
     currentUserId = null;
