@@ -125,6 +125,7 @@ els.authForm.addEventListener("submit", async (e) => {
 });
 
 els.btnLogout.addEventListener("click", async () => {
+  enRecuperation = false;
   try { await signOut(); } catch (error) { console.error(error); }
 });
 
@@ -205,6 +206,7 @@ onAuthStateChange((event, session) => {
 (async function init() {
   try {
     const session = await getSession();
+    if (enRecuperation) return; // on est en pleine récupération, ne pas écraser cet écran
     if (session) {
       await afficherApp(session);
     } else {
