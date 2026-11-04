@@ -150,6 +150,7 @@
     <div class="sheet-actions">
       <button type="button" class="btn-ghost" id="btn-create">Créer un aliment</button>
       <button type="button" class="btn-ghost" id="btn-scan">Scanner un aliment</button>
+      <button type="button" class="btn-ghost" id="btn-recipe">Ajouter une recette</button>
     </div>
     <form id="entry-form" class="hidden">
       <p><b id="picked-name"></b></p>
@@ -203,6 +204,22 @@
   </dialog>
 </div>
 
+<dialog id="recipe-pick" aria-labelledby="rp-title">
+  <div class="sheet-head"><h2 id="rp-title">Choisir une recette</h2><button type="button" class="btn-ghost" id="rp-close">Fermer</button></div>
+  <div class="field"><label for="rp-search">Chercher une recette</label><input type="search" id="rp-search" autocomplete="off"></div>
+  <ul id="pick-list"></ul>
+</dialog>
+<dialog id="recipe-log" aria-labelledby="rl-title">
+  <div class="sheet-head"><h2 id="rl-title"></h2><button type="button" class="btn-ghost" id="rl-close">Fermer</button></div>
+  <form id="rl-form">
+    <div class="field"><label for="rl-portions">Portions mangées</label><input type="number" id="rl-portions" inputmode="decimal" min="0.1" step="any" required></div>
+    <div class="field"><label for="rl-meal">Repas</label><select id="rl-meal"></select></div>
+    <div class="field"><label for="rl-date">Jour</label><input type="date" id="rl-date" required></div>
+    <p id="rl-preview"></p>
+    <button type="submit" class="btn-primary">Ajouter au journal</button>
+    <p class="form-msg" id="rl-msg" role="alert"></p>
+  </form>
+</dialog>
 <div id="toasts" role="status" aria-live="polite"></div>
 <dialog id="goal-dlg" aria-labelledby="goal-title">
   <div class="sheet-head"><h2 id="goal-title">Objectif quotidien</h2><button type="button" class="btn-ghost" id="goal-close">Fermer</button></div>
