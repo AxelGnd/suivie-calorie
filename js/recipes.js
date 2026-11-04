@@ -1,5 +1,5 @@
 import { supabaseClient as sb } from "./supabaseClient.js";
-import { getFoods } from "./nutrition.js";
+import { getFoods, getDay, showDay, MEAL_TYPES } from "./nutrition.js";
 import { avatarHtml } from "./account.js";
 import { toast, buzz } from "./ui.js";
 
@@ -15,7 +15,7 @@ const setCnt = (r, k, n) => { r[k] = [{ count: n }]; };
 const who = (r) => (r.public_profiles && r.public_profiles.pseudo) || "Membre";
 
 let uid = null, pseudo = null, recipes = [], liked = new Set(), saved = new Set();
-let sub = "mine", current = null, draft = [], bound = false, loading = true;
+let sub = "mine", current = null, draft = [], bound = false, loading = true, pickCtx = {}, logged = null;
 
 export async function initRecipes(userId) {
   uid = userId; pseudo = null; recipes = []; sub = "mine"; loading = true;
@@ -58,7 +58,8 @@ function render() {
 }
 
 // ---------- Détail d'une recette ----------
-const actionsHtml = (r) => `<button type="button" class="btn-ghost" data-act="like" aria-pressed="${liked.has(r.id)}">J’aime (${cnt(r, "recipe_likes")})</button>
+const actionsHtml = (r) => `<button type="button" class="btn-primary" data-act="log">Ajouter au journal</button>
+  <button type="button" class="btn-ghost" data-act="like" aria-pressed="${liked.has(r.id)}">J’aime (${cnt(r, "recipe_likes")})</button>
   <button type="button" class="btn-ghost" data-act="save" aria-pressed="${saved.has(r.id)}">${saved.has(r.id) ? "Enregistrée" : "Enregistrer"}</button>
   ${r.user_id === uid ? `<button type="button" class="btn-ghost" data-act="del">Supprimer</button>` : ""}`;
 
@@ -224,6 +225,7 @@ function bind() {
   $("recipe-view").addEventListener("close", () => { current = null; });
   $("rv-body").onclick = (e) => {
     const a = e.target.closest("[data-act]");
+    if (a && a.dataset.act === "log") return openLog(current);
     if (a) return a.dataset.act === "del" ? delRecipe() : act(a.dataset.act);
     const c = e.target.closest("[data-cdel]");
     if (c) delComment(c.dataset.cdel);
@@ -235,4 +237,75 @@ function bind() {
   $("re-servings").oninput = drawDraft;
   $("re-items").onclick = (e) => { const b = e.target.closest("[data-rm]"); if (b) { draft.splice(+b.dataset.rm, 1); drawDraft(); } };
   $("re-form").onsubmit = save;
+  document.addEventListener("pick-recipe", (e) => openPicker(e.detail));
+  $("rp-close").onclick = () => $("recipe-pick").close();
+  $("rp-search").oninput = drawPicker;
+  $("pick-list").onclick = (e) => {
+    const b = e.target.closest("[data-pick]");
+    if (!b) return;
+    $("recipe-pick").close();
+    openLog(recipes.find((x) => x.id === b.dataset.pick), pickCtx);
+  };
+  $("rl-close").onclick = () => $("recipe-log").close();
+  $("rl-portions").oninput = logPreview;
+  $("rl-form").onsubmit = addToJournal;
+}
+
+// ---------- Ajouter une recette au journal (valeurs déjà calculées) ----------
+function openPicker(ctx) {
+  pickCtx = ctx || {};
+  $("rp-search").value = "";
+  drawPicker();
+  $("recipe-pick").showModal();
+}
+
+function drawPicker() {
+  const q = $("rp-search").value.trim().toLowerCase();
+  const rank = (r) => (r.user_id === uid ? 0 : saved.has(r.id) ? 1 : 2);
+  const names = ["Mes recettes", "Enregistrées", "Communauté"];
+  const list = recipes.filter((r) => r.title.toLowerCase().includes(q)).sort((a, b) => rank(a) - rank(b));
+  let last = -1, html = "";
+  list.forEach((r) => {
+    if (rank(r) !== last) { last = rank(r); html += `<li class="grp">${names[last]}</li>`; }
+    html += `<li><button type="button" data-pick="${r.id}"><b>${esc(r.title)}</b><small>${n0(per(r, "calories"))} kcal par portion</small></button></li>`;
+  });
+  $("pick-list").innerHTML = html || `<li class="empty">Aucune recette trouvée. Crée-en une dans l’onglet Recettes.</li>`;
+}
+
+const guessMeal = () => { const h = new Date().getHours(); return h < 10 ? "petit_dejeuner" : h < 15 ? "dejeuner" : h < 18 ? "collation" : "diner"; };
+
+function openLog(r, ctx = {}) {
+  if (!r) return;
+  logged = r;
+  $("rl-title").textContent = r.title;
+  $("rl-meal").innerHTML = MEAL_TYPES.map(([k, l]) => `<option value="${k}">${l}</option>`).join("");
+  $("rl-meal").value = ctx.meal || guessMeal();
+  $("rl-date").value = ctx.day || getDay();
+  $("rl-portions").value = 1;
+  msg("rl-msg", "");
+  logPreview();
+  $("recipe-log").showModal();
+}
+
+function logPreview() {
+  const n = +$("rl-portions").value || 0;
+  $("rl-preview").textContent = `${n0(per(logged, "calories") * n)} kcal. Protéines ${n0(per(logged, "protein") * n)} g, glucides ${n0(per(logged, "carbs") * n)} g, lipides ${n0(per(logged, "fat") * n)} g.`;
+}
+
+async function addToJournal(e) {
+  e.preventDefault();
+  const r = logged, n = +$("rl-portions").value, date = $("rl-date").value;
+  if (!r || !(n > 0) || !date) return msg("rl-msg", "Indique un jour et un nombre de portions.");
+  const t = (k) => r2(per(r, k) * n);
+  const { error } = await sb.from("meal_entries").insert({
+    eaten_on: date, meal_type: $("rl-meal").value, food_id: null,
+    food_name: `${r.title} (${n} portion${n > 1 ? "s" : ""})`,
+    quantity_g: t("quantity_g"), calories: t("calories"), protein: t("protein"), carbs: t("carbs"), fat: t("fat"),
+  });
+  if (error) return msg("rl-msg", "Ajout impossible : " + error.message);
+  const label = MEAL_TYPES.find((m) => m[0] === $("rl-meal").value)[1].toLowerCase();
+  ["recipe-log", "recipe-view"].forEach((id) => { if ($(id).open) $(id).close(); });
+  buzz();
+  showDay(date); // le journal se place sur le jour choisi
+  toast(`${r.title} ajouté (${label})`, { action: "Voir", onAction: () => document.querySelector('.tab-btn[data-tab="nutrition"]').click() });
 }
