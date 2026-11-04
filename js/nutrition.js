@@ -79,7 +79,7 @@ function render() {
     const items = list.length
       ? `<ul>${list.map((e) => `<li><div><b>${esc(e.food_name)}</b><small>${n1(e.quantity_g)} g</small></div><span>${n0(e.calories)} kcal</span><button class="btn-x" data-del="${e.id}" aria-label="Supprimer ${esc(e.food_name)}">✕</button></li>`).join("")}</ul>`
       : `<p class="empty">Aucun aliment. Touche Ajouter pour commencer.</p>`;
-    return `<section class="meal"><header><h2>${label}</h2><span>${n0(sum)} kcal</span><button class="btn-ghost" data-add="${key}" aria-label="Ajouter à ${label}">Ajouter</button></header>${items}</section>`;
+    return `<section class="panel meal"><header><h2>${label}</h2><span>${n0(sum)} kcal</span><button class="btn-ghost" data-add="${key}" aria-label="Ajouter à ${label}">Ajouter</button></header>${items}</section>`;
   }).join("");
 }
 
@@ -168,8 +168,6 @@ async function addEntry(e) {
   if (error) { $("sheet-msg").textContent = "Ajout impossible : " + error.message; return; }
   $("sheet").close();
   loadDay();
-  buzz();
-  toast(`${picked.name} ajouté`);
 }
 
 async function addFood(e) {
