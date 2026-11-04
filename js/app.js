@@ -1,6 +1,7 @@
-import { signUp, signIn, signOut, getSession, onAuthStateChange, messageErreurAuth, resetPasswordEmail, updatePassword } from "./auth.js";
+import { PSEUDO_RE, pseudoDisponible, signUp, signIn, signOut, getSession, onAuthStateChange, messageErreurAuth, resetPasswordEmail, updatePassword } from "./auth.js";
 import { initNutrition } from "./nutrition.js";
 import { initRecipes } from "./recipes.js";
+import { initAccount } from "./account.js";
 import { THEMES, applyTheme, getCachedTheme, chargerThemeDepuisProfil, changerTheme } from "./theme.js";
 
 // Applique tout de suite un thème (cache local) pour éviter un flash
@@ -14,6 +15,8 @@ const els = {
   authSubtitle: document.getElementById("auth-subtitle"),
   authForm: document.getElementById("auth-form"),
   authEmail: document.getElementById("auth-email"),
+  authPseudoField: document.getElementById("auth-pseudo-field"),
+  authPseudo: document.getElementById("auth-pseudo"),
   authPassword: document.getElementById("auth-password"),
   authSubmit: document.getElementById("auth-submit"),
   authMessageArea: document.getElementById("auth-message-area"),
@@ -53,6 +56,8 @@ function basculerMode() {
     els.authTitle.textContent = "Créer un compte";
     els.authSubtitle.textContent = "Tes données te suivront sur tous tes appareils.";
     els.authSubmit.textContent = "Créer mon compte";
+    els.authPseudoField.classList.remove("hidden");
+    els.authPseudo.required = true;
     els.authSwitchText.textContent = "Déjà un compte ?";
     els.authSwitchBtn.textContent = "Se connecter";
     if (els.authForgotBtn) els.authForgotBtn.style.display = "none";
@@ -60,6 +65,8 @@ function basculerMode() {
     els.authTitle.textContent = "Connexion";
     els.authSubtitle.textContent = "Accède à tes données, synchronisées partout.";
     els.authSubmit.textContent = "Se connecter";
+    els.authPseudoField.classList.add("hidden");
+    els.authPseudo.required = false;
     els.authSwitchText.textContent = "Pas encore de compte ?";
     els.authSwitchBtn.textContent = "Créer un compte";
     if (els.authForgotBtn) els.authForgotBtn.style.display = "inline-block";
@@ -120,7 +127,10 @@ els.authForm.addEventListener("submit", async (e) => {
     } else if (mode === "login") {
       await signIn(email, password);
     } else {
-      const data = await signUp(email, password);
+      const pseudo = els.authPseudo.value.trim();
+      if (!PSEUDO_RE.test(pseudo)) { afficherMessageAuth("Le pseudo doit faire 3 à 20 caractères : lettres, chiffres, _ . ou -", "error"); return; }
+      if (!(await pseudoDisponible(pseudo))) { afficherMessageAuth("Ce pseudo est déjà pris. Essaie-en un autre.", "error"); return; }
+      const data = await signUp(email, password, pseudo);
       if (data.session) {
         mode = "login";
       } else {
@@ -189,8 +199,10 @@ async function afficherApp(session) {
   if (enRecuperation) return; // l'utilisateur est en train de choisir un nouveau mot de passe
   rendreSelecteurTheme(themeActif || getCachedTheme() || THEMES[0].key);
   afficherEcran("app");
+  showTab("nutrition");
   initNutrition(currentUserId);
   initRecipes(currentUserId);
+  initAccount(currentUserId);
 }
 onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") {
@@ -224,7 +236,9 @@ onAuthStateChange((event, session) => {
 });
 
 // ---------- Onglets ----------
-document.querySelectorAll(".tab-btn").forEach((b) => b.addEventListener("click", () => {
-  document.querySelectorAll(".tab-btn").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
-  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("hidden", p.id !== "tab-" + b.dataset.tab));
-}));
+function showTab(name) {
+  document.querySelectorAll(".tab-btn").forEach((x) => x.setAttribute("aria-selected", String(x.dataset.tab === name)));
+  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("hidden", p.id !== "tab-" + name));
+}
+document.querySelectorAll(".tab-btn").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+document.getElementById("btn-user").addEventListener("click", () => showTab("user"));
