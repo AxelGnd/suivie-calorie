@@ -1,0 +1,81 @@
+/* Onglet Nutrition — mobile d'abord, utilise uniquement les variables des thèmes */
+
+main { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+
+button:focus-visible, input:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Barre d'onglets en bas (accessible au pouce) */
+.tabbar {
+  position: fixed; inset: auto 0 0 0; z-index: 5;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab-btn {
+  flex: 1; min-height: 56px;
+  background: none; border: 0; cursor: pointer;
+  color: var(--text-muted); font-weight: 600;
+}
+.tab-btn[aria-selected="true"] { color: var(--accent); box-shadow: inset 0 3px 0 var(--accent); }
+
+/* Navigation entre les jours */
+.day-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); }
+.day-nav .btn-ghost { min-width: 44px; min-height: 44px; font-size: 1.3rem; }
+#day-label { font-family: var(--font-display); font-size: 1.15rem; text-transform: capitalize; }
+
+/* Résumé du jour : le chiffre restant est l'élément central */
+.summary { text-align: center; }
+#kcal-left { display: block; font-family: var(--font-display); font-size: 3.4rem; line-height: 1; }
+.summary .caption { color: var(--text-muted); font-size: 0.9rem; margin-top: var(--space-1); }
+.bar { height: 10px; border-radius: 999px; background: var(--border); overflow: hidden; margin: var(--space-3) 0; }
+#kcal-bar { height: 100%; width: 0; background: var(--accent); transition: width var(--transition); }
+#kcal-bar.over { background: var(--danger); }
+.macros { display: flex; justify-content: space-around; margin-bottom: var(--space-2); }
+.macros div { display: flex; flex-direction: column; }
+.macros span { font-size: 0.8rem; color: var(--text-muted); }
+.summary .btn-link { min-height: 44px; }
+
+/* Repas */
+.meal header { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+.meal h2 { margin: 0; flex: 1; }
+.meal header > span { color: var(--text-muted); font-size: 0.9rem; }
+.meal header .btn-ghost { min-height: 44px; }
+.meal ul { list-style: none; margin: 0; padding: 0; }
+.meal li { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; border-top: 1px solid var(--border); }
+.meal li div { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.meal li b { overflow-wrap: anywhere; }
+small { color: var(--text-muted); font-size: 0.8rem; }
+.btn-x { min-width: 44px; min-height: 44px; background: none; border: 0; color: var(--text-muted); cursor: pointer; }
+.btn-x:hover { color: var(--danger); }
+.empty { color: var(--text-muted); margin: 0; font-size: 0.9rem; }
+
+/* Fenêtre d'ajout, collée en bas de l'écran */
+#sheet {
+  width: 100%; max-width: 560px; max-height: 88vh; overflow: auto;
+  margin: auto auto 0; padding: var(--space-4);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+#sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); }
+.sheet-head h2 { margin: 0; }
+.sheet-head .btn-ghost { min-height: 44px; }
+#food-list { list-style: none; margin: 0 0 var(--space-3); padding: 0; max-height: 30vh; overflow: auto; }
+#food-list li.empty { padding: var(--space-2) 0; }
+#food-list button {
+  width: 100%; min-height: 48px; display: flex; justify-content: space-between; align-items: center; gap: var(--space-2);
+  background: none; border: 0; border-top: 1px solid var(--border);
+  color: var(--text); text-align: left; cursor: pointer;
+}
+#qty-preview { color: var(--text-muted); margin: 0 0 var(--space-3); }
+#sheet details { margin-top: var(--space-3); border-top: 1px solid var(--border); padding-top: var(--space-3); }
+#sheet summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; }
+#sheet-msg { color: var(--danger); font-size: 0.88rem; margin: var(--space-2) 0 0; }
+
+@media (prefers-reduced-motion: reduce) { #kcal-bar { transition: none; } }
