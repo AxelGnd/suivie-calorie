@@ -54,7 +54,7 @@ small { color: var(--text-muted); font-size: 0.8rem; }
 .empty { color: var(--text-muted); margin: 0; font-size: 0.9rem; }
 
 /* Fenêtre d'ajout, collée en bas de l'écran */
-#sheet {
+#sheet, #recipe-view, #recipe-edit {
   width: 100%; max-width: 560px; max-height: 88vh; overflow: auto;
   margin: auto auto 0; padding: var(--space-4);
   padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
@@ -62,7 +62,7 @@ small { color: var(--text-muted); font-size: 0.8rem; }
   border: 1px solid var(--border);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
-#sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
+#sheet::backdrop, #recipe-view::backdrop, #recipe-edit::backdrop { background: rgba(0, 0, 0, 0.55); }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); }
 .sheet-head h2 { margin: 0; }
 .sheet-head .btn-ghost { min-height: 44px; }
