@@ -1,4 +1,5 @@
 import { supabaseClient as sb } from "./supabaseClient.js";
+import { toast, buzz } from "./ui.js";
 
 const TYPES = [
   ["petit_dejeuner", "Petit-déjeuner"],
@@ -13,16 +14,19 @@ const n0 = (n) => Math.round(Number(n) || 0);
 const n1 = (n) => Math.round((Number(n) || 0) * 10) / 10;
 const r2 = (n) => Math.round(n * 100) / 100;
 const fmt = (n) => n0(n).toLocaleString("fr-FR");
+const skeleton = '<div class="skeleton"></div>'.repeat(3);
 
 let uid = null, day = iso(new Date()), entries = [], foods = [], goal = 2000;
 let meal = null, picked = null, bound = false;
 export const getFoods = () => foods;
+let loading = true;
 let pendingCode = null, reader = null, stream = null, scanning = false;
 
 export async function initNutrition(userId) {
   uid = userId;
   day = iso(new Date());
   entries = [];
+  loading = true;
   if (!bound) { bind(); bound = true; }
   render();
   await Promise.all([loadGoal(), loadFoods()]);
@@ -44,6 +48,7 @@ async function loadDay() {
   const d = day;
   const { data, error } = await sb.from("meal_entries").select("*").eq("eaten_on", d).order("created_at");
   if (d !== day) return; // l'utilisateur a changé de jour entre-temps
+  loading = false;
   if (error) { $("meals").textContent = "Impossible de charger ton journal. Vérifie ta connexion."; return; }
   entries = data;
   render();
@@ -59,18 +64,22 @@ function render() {
   $("kcal-caption").textContent = left >= 0
     ? `kcal restantes sur ${fmt(goal)}`
     : `kcal au-dessus de ton objectif de ${fmt(goal)}`;
-  const bar = $("kcal-bar");
-  bar.style.width = Math.min(100, (t.k / goal) * 100) + "%";
-  bar.classList.toggle("over", left < 0);
-  $("macros").innerHTML = [["Protéines", t.p], ["Glucides", t.c], ["Lipides", t.f]]
-    .map(([l, v]) => `<div><strong>${n0(v)} g</strong><span>${l}</span></div>`).join("");
-  $("meals").innerHTML = TYPES.map(([key, label]) => {
+  const ring = $("ring");
+  ring.style.setProperty("--p", Math.min(100, (t.k / goal) * 100));
+  ring.classList.toggle("over", left < 0);
+  const kc = { p: t.p * 4, c: t.c * 4, f: t.f * 9 };
+  $("mix").innerHTML = kc.p + kc.c + kc.f
+    ? [["p", "protein"], ["c", "carbs"], ["f", "fat"]].map(([k, n]) => `<i style="flex:${kc[k]};background:var(--c-${n})"></i>`).join("")
+    : "";
+  $("macros").innerHTML = [["Protéines", t.p, "protein"], ["Glucides", t.c, "carbs"], ["Lipides", t.f, "fat"]]
+    .map(([l, v, n]) => `<li><b>${n0(v)} g</b><span><i style="background:var(--c-${n})"></i>${l}</span></li>`).join("");
+  $("meals").innerHTML = loading ? skeleton : TYPES.map(([key, label]) => {
     const list = entries.filter((e) => e.meal_type === key);
     const sum = list.reduce((a, e) => a + +e.calories, 0);
     const items = list.length
       ? `<ul>${list.map((e) => `<li><div><b>${esc(e.food_name)}</b><small>${n1(e.quantity_g)} g</small></div><span>${n0(e.calories)} kcal</span><button class="btn-x" data-del="${e.id}" aria-label="Supprimer ${esc(e.food_name)}">✕</button></li>`).join("")}</ul>`
       : `<p class="empty">Aucun aliment. Touche Ajouter pour commencer.</p>`;
-    return `<section class="panel meal"><header><h2>${label}</h2><span>${n0(sum)} kcal</span><button class="btn-ghost" data-add="${key}" aria-label="Ajouter à ${label}">Ajouter</button></header>${items}</section>`;
+    return `<section class="meal"><header><h2>${label}</h2><span>${n0(sum)} kcal</span><button class="btn-ghost" data-add="${key}" aria-label="Ajouter à ${label}">Ajouter</button></header>${items}</section>`;
   }).join("");
 }
 
@@ -79,19 +88,35 @@ function shift(n) {
   d.setDate(d.getDate() + n);
   day = iso(d);
   entries = [];
+  loading = true;
   render();
   loadDay();
 }
 
-async function editGoal() {
-  const v = prompt("Objectif de calories par jour", goal);
-  if (v === null) return;
-  const n = Math.round(+v);
-  if (!(n >= 1000 && n <= 6000)) { alert("Entre un nombre compris entre 1 000 et 6 000."); return; }
+function editGoal() {
+  $("goal-input").value = goal;
+  $("goal-msg").textContent = "";
+  $("goal-dlg").showModal();
+  $("goal-input").select();
+}
+
+async function saveGoal(e) {
+  e.preventDefault();
+  const n = Math.round(+$("goal-input").value);
+  if (!(n >= 1000 && n <= 6000)) { $("goal-msg").textContent = "Entre un nombre compris entre 1 000 et 6 000."; return; }
   const { error } = await sb.from("goals").upsert({ user_id: uid, calories_target: n });
-  if (error) { alert("Enregistrement impossible : " + error.message); return; }
+  if (error) { $("goal-msg").textContent = "Enregistrement impossible : " + error.message; return; }
   goal = n;
   render();
+  $("goal-dlg").close();
+  toast("Objectif mis à jour");
+}
+
+async function undoDelete(row) { // « Annuler » après une suppression : on remet la ligne telle quelle
+  const { id, created_at, user_id, ...rest } = row;
+  const { error } = await sb.from("meal_entries").insert(rest);
+  if (error) toast("Impossible de rétablir : " + error.message);
+  else loadDay();
 }
 
 function openSheet(key) {
@@ -143,6 +168,8 @@ async function addEntry(e) {
   if (error) { $("sheet-msg").textContent = "Ajout impossible : " + error.message; return; }
   $("sheet").close();
   loadDay();
+  buzz();
+  toast(`${picked.name} ajouté`);
 }
 
 async function addFood(e) {
@@ -166,14 +193,18 @@ function bind() {
   $("day-prev").onclick = () => shift(-1);
   $("day-next").onclick = () => shift(1);
   $("goal-edit").onclick = editGoal;
+  $("goal-form").onsubmit = saveGoal;
+  $("goal-close").onclick = () => $("goal-dlg").close();
   $("meals").onclick = async (e) => {
     const add = e.target.closest("[data-add]");
     if (add) return openSheet(add.dataset.add);
     const del = e.target.closest("[data-del]");
     if (del) {
+      const row = entries.find((x) => x.id === del.dataset.del);
       const { error } = await sb.from("meal_entries").delete().eq("id", del.dataset.del);
-      if (error) alert("Suppression impossible : " + error.message);
-      else loadDay();
+      if (error) return toast("Suppression impossible : " + error.message);
+      loadDay();
+      toast(`${row.food_name} retiré`, { action: "Annuler", onAction: () => undoDelete(row) });
     }
   };
   $("food-search").oninput = listFoods;
