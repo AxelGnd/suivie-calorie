@@ -1,4 +1,5 @@
 import { signUp, signIn, signOut, getSession, onAuthStateChange, messageErreurAuth, resetPasswordEmail, updatePassword } from "./auth.js";
+import { initNutrition } from "./nutrition.js";
 import { THEMES, applyTheme, getCachedTheme, chargerThemeDepuisProfil, changerTheme } from "./theme.js";
 
 // Applique tout de suite un thème (cache local) pour éviter un flash
@@ -24,6 +25,8 @@ const els = {
   themeSyncStatus: document.getElementById("theme-sync-status"),
 };
 
+// Lien de réinitialisation ouvert : détecté dès le chargement, avant tout autre événement
+let enRecuperation = /type=recovery/.test(window.location.hash + window.location.search);
 let mode = "login"; // ou "signup"
 let currentUserId = null;
 
@@ -34,8 +37,12 @@ function afficherEcran(nom) {
 }
 
 function afficherMessageAuth(texte, type) {
-  if (!texte) { els.authMessageArea.innerHTML = ""; return; }
-  els.authMessageArea.innerHTML = `<div class="auth-message ${type}">${texte}</div>`;
+  els.authMessageArea.textContent = "";
+  if (!texte) return;
+  const d = document.createElement("div");
+  d.className = "auth-message " + type;
+  d.textContent = texte;
+  els.authMessageArea.appendChild(d);
 }
 
 function basculerMode() {
@@ -56,6 +63,12 @@ function basculerMode() {
     els.authSwitchBtn.textContent = "Créer un compte";
     if (els.authForgotBtn) els.authForgotBtn.style.display = "inline-block";
   }
+}
+
+// Lien de réinitialisation expiré ou déjà utilisé (fréquent : certains antivirus/messageries ouvrent le lien avant toi)
+if (/error_code=otp_expired/.test(window.location.hash)) {
+  afficherMessageAuth("Ce lien a expiré ou a déjà été utilisé. Demande un nouvel e-mail de réinitialisation.", "error");
+  history.replaceState(null, "", window.location.pathname);
 }
 
 els.authSwitchBtn.addEventListener("click", basculerMode);
@@ -168,13 +181,15 @@ function verifierSecuriteMotDePasse(password) {
   return null;
 }
 async function afficherApp(session) {
+  if (enRecuperation) return;
   currentUserId = session.user.id;
   els.userEmail.textContent = session.user.email;
   const themeActif = await chargerThemeDepuisProfil(currentUserId);
+  if (enRecuperation) return; // l'utilisateur est en train de choisir un nouveau mot de passe
   rendreSelecteurTheme(themeActif || getCachedTheme() || THEMES[0].key);
   afficherEcran("app");
+  initNutrition(currentUserId);
 }
-let enRecuperation = false;
 onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") {
     enRecuperation = true;
@@ -185,6 +200,9 @@ onAuthStateChange((event, session) => {
     if (els.authForgotBtn) els.authForgotBtn.style.display = "none";
     if (els.authSwitchText) els.authSwitchText.style.display = "none";
     if (els.authSwitchBtn) els.authSwitchBtn.style.display = "none";
+    els.authEmail.required = false; // champ vide et masqué : sinon le navigateur bloque l'envoi
+    els.authEmail.closest(".field").style.display = "none";
+    els.authPassword.autocomplete = "new-password";
     mode = "update_password";
     return;
   }
@@ -203,4 +221,8 @@ onAuthStateChange((event, session) => {
   }
 });
 
-
+// ---------- Onglets ----------
+document.querySelectorAll(".tab-btn").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".tab-btn").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("hidden", p.id !== "tab-" + b.dataset.tab));
+}));
