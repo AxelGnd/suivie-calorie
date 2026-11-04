@@ -27,7 +27,7 @@ export function buzz(ms = 10) {
 
 export function initUi() {
   // Toucher en dehors d'une fenêtre la ferme
-  document.querySelectorAll("dialog").forEach((d) => d.addEventListener("click", (e) => {
+  document.querySelectorAll("dialog:not(#sheet)").forEach((d) => d.addEventListener("click", (e) => {
     const r = d.getBoundingClientRect();
     if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close();
   }));
