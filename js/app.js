@@ -1,5 +1,6 @@
 import { signUp, signIn, signOut, getSession, onAuthStateChange, messageErreurAuth, resetPasswordEmail, updatePassword } from "./auth.js";
 import { initNutrition } from "./nutrition.js";
+import { initRecipes } from "./recipes.js";
 import { THEMES, applyTheme, getCachedTheme, chargerThemeDepuisProfil, changerTheme } from "./theme.js";
 
 // Applique tout de suite un thème (cache local) pour éviter un flash
@@ -189,6 +190,7 @@ async function afficherApp(session) {
   rendreSelecteurTheme(themeActif || getCachedTheme() || THEMES[0].key);
   afficherEcran("app");
   initNutrition(currentUserId);
+  initRecipes(currentUserId);
 }
 onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") {
