@@ -92,11 +92,11 @@ small, .empty, .sync-status { font-size: var(--fs-small); }
 .rv-actions [aria-pressed="true"] { color: var(--accent-ink); }
 
 /* ---------- Fenêtres : elles montent depuis le bas ---------- */
-#goal-dlg { width: 100%; max-width: 560px; margin: auto auto 0; padding: var(--space-4); padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom)); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
-#goal-dlg::backdrop { background: rgba(0, 0, 0, 0.55); }
-#recipe-view, #recipe-edit, #goal-dlg { box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25); }
-#recipe-view[open], #recipe-edit[open], #goal-dlg[open] { animation: sheet-in 240ms var(--ease); }
-#recipe-view[open]::backdrop, #recipe-edit[open]::backdrop, #goal-dlg[open]::backdrop { animation: fade-in 200ms ease-out; }
+#goal-dlg, #recipe-pick, #recipe-log { width: 100%; max-width: 560px; margin: auto auto 0; padding: var(--space-4); padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom)); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+#goal-dlg::backdrop, #recipe-pick::backdrop, #recipe-log::backdrop { background: rgba(0, 0, 0, 0.55); }
+#recipe-view, #recipe-edit, #goal-dlg, #recipe-pick, #recipe-log { box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25); }
+#recipe-view[open], #recipe-edit[open], #goal-dlg[open], #recipe-pick[open], #recipe-log[open] { animation: sheet-in 240ms var(--ease); }
+#recipe-view[open]::backdrop, #recipe-edit[open]::backdrop, #goal-dlg[open]::backdrop, #recipe-pick[open]::backdrop, #recipe-log[open]::backdrop { animation: fade-in 200ms ease-out; }
 #sheet .field input { min-height: 0; }
 
 /* ---------- Retours : toasts et chargement ---------- */
@@ -116,3 +116,11 @@ small, .empty, .sync-status { font-size: var(--fs-small); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* ---------- Ajouter une recette au journal ---------- */
+.sheet-actions { flex-wrap: wrap; }
+#btn-recipe { flex-basis: 100%; }
+#pick-list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow: auto; }
+#pick-list .grp { padding: var(--space-3) 0 var(--space-1); color: var(--text-muted); font-size: var(--fs-small); font-weight: 600; }
+#pick-list button { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 56px; padding: var(--space-2) 0; background: none; border: 0; border-top: 1px solid var(--border); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+#rl-preview { color: var(--text-muted); font-variant-numeric: tabular-nums; }
