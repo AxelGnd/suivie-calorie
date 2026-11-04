@@ -1,0 +1,121 @@
+/* ============================================================
+   COUCHE DIRECTION ARTISTIQUE — chargée en dernière.
+   Les jetons sont dans themes.css ; ici : typographie, composants, mouvement.
+   Principes : une seule chose mémorable (l'assiette du jour), le reste reste calme ;
+   trois tailles de texte ; le mouvement répond aux gestes de l'utilisateur.
+   ============================================================ */
+
+@property --p { syntax: "<number>"; inherits: false; initial-value: 0; }
+
+body { font-size: var(--fs-body); line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+h1, h2, h3 { letter-spacing: -0.01em; line-height: 1.2; }
+.panel h2, .meal h2 { font-size: var(--fs-title); }
+small, .empty, .sync-status { font-size: var(--fs-small); }
+:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+
+/* ---------- Gestes : on appuie dans la matière, on ne la soulève pas ---------- */
+.btn-primary, .btn-ghost, .tab-btn, .subtab, .usubtab, .rcard, .user-btn, .theme-option {
+  transition: transform var(--t-fast) var(--ease), background var(--t), border-color var(--t), color var(--t), filter var(--t);
+}
+.btn-primary:active, .btn-ghost:active, .tab-btn:active, .rcard:active, .user-btn:active, .theme-option:active { transform: scale(0.97); }
+.btn-primary:disabled, .btn-ghost:disabled { opacity: 0.45; cursor: default; transform: none; }
+.btn-link { color: var(--accent-ink); }
+.form-msg.ok { color: var(--accent-ink); }
+.field input, .field textarea, .field select { min-height: 48px; transition: border-color var(--t); }
+.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent-ink); }
+@media (hover: hover) {
+  .btn-ghost:hover, .user-btn:hover { border-color: var(--accent-ink); color: var(--accent-ink); }
+  .rcard:hover { border-color: var(--accent-ink); }
+}
+
+/* ---------- Entrée / connexion ---------- */
+#screen-auth { background: radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%); }
+.auth-card h1 { font-size: 1.9rem; }
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 6rem; }
+.pw-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); min-height: 40px; padding: 0 var(--space-3); background: none; border: 0; color: var(--accent-ink); font-weight: 600; cursor: pointer; }
+
+/* ---------- En-tête et navigation ---------- */
+.app-header {
+  position: sticky; top: 0; z-index: 6;
+  padding-top: calc(var(--space-3) + env(safe-area-inset-top));
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.app-header h1 { font-size: var(--fs-title); }
+.tabbar { background: color-mix(in srgb, var(--surface) 90%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.tab-btn { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: var(--fs-small); }
+.tab-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tab-btn::before { content: ""; position: absolute; top: 0; left: 50%; width: 32px; height: 3px; margin-left: -16px; border-radius: 0 0 3px 3px; background: var(--accent); transform: scaleX(0); transition: transform var(--t) var(--ease); }
+.tab-btn[aria-selected="true"] { color: var(--accent-ink); box-shadow: none; }
+.tab-btn[aria-selected="true"]::before { transform: scaleX(1); }
+.tab-btn[aria-selected="true"] svg { stroke-width: 2.2; }
+.tab-panel:not(.hidden) { animation: tab-in 200ms var(--ease); }
+.subtab[aria-selected="true"], .usubtab[aria-selected="true"] { color: var(--accent-ink); box-shadow: inset 0 -3px 0 var(--accent); }
+.theme-option { position: relative; }
+.theme-option.active::after { content: "✓"; position: absolute; top: 8px; right: 12px; color: var(--accent-ink); font-weight: 700; }
+
+/* ---------- L'assiette du jour : le seul élément spectaculaire ---------- */
+.hero { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-4) 0 var(--space-3); }
+.ring-wrap { position: relative; width: min(72vw, 240px); aspect-ratio: 1; }
+.ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--track) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 15px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 15px));
+  transition: --p 700ms var(--ease);
+}
+.ring.over { background: var(--danger); }
+.ring-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+#kcal-left { font-family: var(--font-display); font-size: var(--fs-hero); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.caption { max-width: 9rem; color: var(--text-muted); font-size: var(--fs-small); }
+.mix { display: flex; width: 100%; max-width: 360px; height: 8px; border-radius: 99px; overflow: hidden; background: var(--track); }
+.mix i { display: block; height: 100%; }
+.legend { display: flex; justify-content: space-between; gap: var(--space-3); width: 100%; max-width: 360px; margin: 0; padding: 0; list-style: none; }
+.legend li { display: flex; flex-direction: column; }
+.legend b { font-variant-numeric: tabular-nums; }
+.legend span { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: var(--fs-small); }
+.legend i { width: 8px; height: 8px; border-radius: 50%; }
+.hero .btn-link { min-height: 44px; }
+
+/* ---------- Journal : des lignes, pas des boîtes ---------- */
+.meal { margin-bottom: var(--space-4); }
+.meal header { padding-bottom: var(--space-2); border-bottom: 1px solid var(--border); }
+.meal li { border-top: 0; font-variant-numeric: tabular-nums; }
+.meal li + li { border-top: 1px solid var(--border); }
+.meal header .btn-ghost { border-radius: 999px; font-weight: 600; color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+
+/* ---------- Recettes : la photo d'abord ---------- */
+#recipe-list { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+#recipe-list > .empty { grid-column: 1 / -1; }
+.rcard { flex-direction: column; align-items: stretch; gap: 0; margin: 0; padding: 0; overflow: hidden; border-radius: var(--radius-lg); }
+.rcard img, .noimg { width: 100%; height: auto; aspect-ratio: 16 / 10; border-radius: 0; }
+.noimg { background: radial-gradient(circle, transparent 0 22%, var(--border) 22% 24%, transparent 24% 34%, var(--border) 34% 36%, transparent 36%), var(--surface-2); }
+.rinfo { padding: var(--space-3); gap: 4px; }
+.rinfo b { font-family: var(--font-display); font-size: var(--fs-title); line-height: 1.2; }
+.rv-actions [aria-pressed="true"] { color: var(--accent-ink); }
+
+/* ---------- Fenêtres : elles montent depuis le bas ---------- */
+#goal-dlg { width: 100%; max-width: 560px; margin: auto auto 0; padding: var(--space-4); padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom)); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+#goal-dlg::backdrop { background: rgba(0, 0, 0, 0.55); }
+#sheet, #recipe-view, #recipe-edit, #goal-dlg { box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25); }
+#sheet[open], #recipe-view[open], #recipe-edit[open], #goal-dlg[open] { animation: sheet-in 240ms var(--ease); }
+dialog[open]::backdrop { animation: fade-in 200ms ease-out; }
+
+/* ---------- Retours : toasts et chargement ---------- */
+#toasts { position: fixed; left: 0; right: 0; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); pointer-events: none; }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: var(--space-3); max-width: 420px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--text); color: var(--bg); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); animation: toast-in 220ms var(--ease); }
+.toast button { min-height: 40px; background: none; border: 0; color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.toast.out { opacity: 0; transform: translateY(8px); transition: opacity 200ms, transform 200ms; }
+.skeleton { height: 64px; margin-bottom: var(--space-2); border-radius: var(--radius-md); background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+#recipe-list .skeleton { height: 200px; margin: 0; }
+
+@keyframes tab-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes sheet-in { from { opacity: 0; transform: translateY(32px); } }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
