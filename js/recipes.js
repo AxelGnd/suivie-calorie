@@ -1,6 +1,7 @@
 import { supabaseClient as sb } from "./supabaseClient.js";
 import { getFoods } from "./nutrition.js";
 import { avatarHtml } from "./account.js";
+import { toast, buzz } from "./ui.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -14,10 +15,10 @@ const setCnt = (r, k, n) => { r[k] = [{ count: n }]; };
 const who = (r) => (r.public_profiles && r.public_profiles.pseudo) || "Membre";
 
 let uid = null, pseudo = null, recipes = [], liked = new Set(), saved = new Set();
-let sub = "mine", current = null, draft = [], bound = false;
+let sub = "mine", current = null, draft = [], bound = false, loading = true;
 
 export async function initRecipes(userId) {
-  uid = userId; pseudo = null; recipes = []; sub = "mine";
+  uid = userId; pseudo = null; recipes = []; sub = "mine"; loading = true;
   if (!bound) { bind(); bound = true; }
   syncSubtabs();
   render();
@@ -30,6 +31,7 @@ async function load() {
     sb.from("recipe_likes").select("recipe_id").eq("user_id", uid),
     sb.from("recipe_saves").select("recipe_id").eq("user_id", uid),
   ]);
+  loading = false;
   if (r.error) { $("recipe-list").textContent = "Impossible de charger les recettes. Vérifie ta connexion."; return; }
   recipes = r.data;
   liked = new Set((l.data || []).map((x) => x.recipe_id));
@@ -52,7 +54,7 @@ function render() {
   $("saved-filter").classList.toggle("hidden", sub !== "community");
   const empty = sub === "mine" ? "Tu n’as pas encore créé de recette. Touche Nouvelle recette pour commencer."
     : only ? "Tu n’as enregistré aucune recette de la communauté." : "Aucune recette de la communauté pour l’instant.";
-  $("recipe-list").innerHTML = list.length ? list.map(card).join("") : `<p class="empty">${empty}</p>`;
+  $("recipe-list").innerHTML = loading ? '<div class="skeleton"></div>'.repeat(4) : list.length ? list.map(card).join("") : `<p class="empty">${empty}</p>`;
 }
 
 // ---------- Détail d'une recette ----------
@@ -104,6 +106,7 @@ async function act(kind) {
   if (on) set.delete(r.id); else set.add(r.id);
   if (kind === "like") setCnt(r, "recipe_likes", cnt(r, "recipe_likes") + (on ? -1 : 1));
   $("rv-actions").innerHTML = actionsHtml(r);
+  buzz();
   render();
 }
 
@@ -200,6 +203,7 @@ async function save(e) {
     const it = await sb.from("recipe_items").insert(rows);
     if (it.error) { await sb.from("recipes").delete().eq("id", r.id); throw it.error; }
     $("recipe-edit").close();
+    toast("Recette publiée");
     sub = "mine";
     syncSubtabs();
     await load();
