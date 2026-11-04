@@ -19,6 +19,9 @@ const skeleton = '<div class="skeleton"></div>'.repeat(3);
 let uid = null, day = iso(new Date()), entries = [], foods = [], goal = 2000;
 let meal = null, picked = null, bound = false;
 export const getFoods = () => foods;
+export const getDay = () => day;
+export const MEAL_TYPES = TYPES;
+export function showDay(d) { day = d; entries = []; loading = true; render(); loadDay(); }
 let loading = true;
 let pendingCode = null, reader = null, stream = null, scanning = false;
 
@@ -214,6 +217,7 @@ function bind() {
   $("sheet").addEventListener("close", stopScan);
   $("btn-create").onclick = () => { pendingCode = null; $("sheet-msg").textContent = ""; show("food-form"); $("nf-name").focus(); };
   $("btn-scan").onclick = () => { $("sheet-msg").textContent = ""; startScan(); };
+  $("btn-recipe").onclick = () => { $("sheet").close(); document.dispatchEvent(new CustomEvent("pick-recipe", { detail: { meal, day } })); };
   $("scan-stop").onclick = () => show(null);
   $("scan-manual").onsubmit = (e) => { e.preventDefault(); onCode($("scan-code").value); };
 }
