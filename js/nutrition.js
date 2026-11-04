@@ -16,6 +16,7 @@ const fmt = (n) => n0(n).toLocaleString("fr-FR");
 
 let uid = null, day = iso(new Date()), entries = [], foods = [], goal = 2000;
 let meal = null, picked = null, bound = false;
+let pendingCode = null, reader = null, stream = null, scanning = false;
 
 export async function initNutrition(userId) {
   uid = userId;
@@ -99,6 +100,8 @@ function openSheet(key) {
   $("food-search").value = "";
   $("sheet-msg").textContent = "";
   $("entry-form").classList.add("hidden");
+  pendingCode = null;
+  show(null);
   listFoods();
   $("sheet").showModal();
 }
@@ -119,6 +122,7 @@ function pick(id) {
   $("entry-form").classList.remove("hidden");
   preview();
   $("qty").select();
+  $("entry-form").scrollIntoView({ block: "nearest" });
 }
 
 function preview() {
@@ -144,13 +148,14 @@ async function addFood(e) {
   e.preventDefault();
   const v = (id) => $(id).value;
   const { data, error } = await sb.from("foods").insert({
-    name: v("nf-name").trim(), calories: +v("nf-kcal"), protein: +v("nf-p") || 0, carbs: +v("nf-c") || 0, fat: +v("nf-f") || 0,
+    name: v("nf-name").trim(), calories: +v("nf-kcal"), protein: +v("nf-p") || 0, carbs: +v("nf-c") || 0, fat: +v("nf-f") || 0, barcode: pendingCode,
   }).select().single();
   if (error) { $("sheet-msg").textContent = "Création impossible : " + error.message; return; }
   foods.push(data);
   foods.sort((a, b) => a.name.localeCompare(b.name, "fr"));
   e.target.reset();
-  e.target.closest("details").open = false;
+  e.target.classList.add("hidden");
+  pendingCode = null;
   $("sheet-msg").textContent = "";
   listFoods();
   pick(data.id);
@@ -176,4 +181,111 @@ function bind() {
   $("entry-form").onsubmit = addEntry;
   $("food-form").onsubmit = addFood;
   $("sheet-close").onclick = () => $("sheet").close();
+  $("sheet").addEventListener("close", stopScan);
+  $("btn-create").onclick = () => { pendingCode = null; $("sheet-msg").textContent = ""; show("food-form"); $("nf-name").focus(); };
+  $("btn-scan").onclick = () => { $("sheet-msg").textContent = ""; startScan(); };
+  $("scan-stop").onclick = () => show(null);
+  $("scan-manual").onsubmit = (e) => { e.preventDefault(); onCode($("scan-code").value); };
+}
+
+// ---------- Création / scan d'un aliment ----------
+function show(id) {
+  ["food-form", "scan-box"].forEach((x) => $(x).classList.toggle("hidden", x !== id));
+  if (id !== "scan-box") stopScan();
+  if (id) $(id).scrollIntoView({ block: "nearest" });
+}
+
+const scanMsg = (t) => { $("scan-msg").textContent = t; };
+
+function loadZXing() {
+  if (window.ZXing) return Promise.resolve();
+  return new Promise((ok, ko) => {
+    const el = document.createElement("script");
+    el.src = "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+    el.onload = ok; el.onerror = ko;
+    document.head.appendChild(el);
+  });
+}
+
+async function startScan() {
+  show("scan-box");
+  scanMsg("Ouverture de la caméra…");
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return scanMsg("Caméra indisponible (l’appli doit être en HTTPS). Tape le code ci-dessous.");
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+  } catch (e) {
+    return scanMsg("Accès à la caméra refusé. Tape le code ci-dessous.");
+  }
+  const video = $("scan-video");
+  video.srcObject = stream;
+  await video.play().catch(() => {});
+  scanMsg("Place le code-barres dans le cadre.");
+  scanning = true;
+  if ("BarcodeDetector" in window) {
+    const det = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] });
+    const loop = async () => {
+      if (!scanning) return;
+      try { const r = await det.detect(video); if (r.length) return onCode(r[0].rawValue); } catch (e) { /* on réessaie */ }
+      setTimeout(loop, 250);
+    };
+    loop();
+  } else {
+    try {
+      await loadZXing();
+      reader = new ZXing.BrowserMultiFormatReader();
+      reader.decodeFromStream(stream, video, (res) => { if (res && scanning) onCode(res.getText()); });
+    } catch (e) {
+      scanMsg("Scanner indisponible. Tape le code ci-dessous.");
+    }
+  }
+}
+
+function stopScan() {
+  scanning = false;
+  try { if (reader) reader.reset(); } catch (e) { /* déjà arrêté */ }
+  reader = null;
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  stream = null;
+  const v = $("scan-video");
+  if (v) v.srcObject = null;
+}
+
+function notFound(code, msg, name = "") {
+  pendingCode = code;
+  show("food-form");
+  $("nf-name").value = name;
+  $("sheet-msg").textContent = msg + " Complète les valeurs à la main.";
+}
+
+async function onCode(raw) {
+  stopScan();
+  const code = String(raw).replace(/\D/g, "");
+  if (code.length < 8 || code.length > 14) return scanMsg("Code invalide. Réessaie ou tape-le à la main.");
+  const known = foods.find((f) => f.barcode === code);
+  if (known) { show(null); return pick(known.id); }
+  scanMsg("Recherche du produit…");
+  try {
+    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,brands,nutriments`);
+    const j = await res.json();
+    if (j.status !== 1) return notFound(code, "Produit introuvable dans Open Food Facts.");
+    const n = j.product.nutriments || {};
+    const kcal = n["energy-kcal_100g"] != null ? +n["energy-kcal_100g"] : (n["energy_100g"] != null ? n["energy_100g"] / 4.184 : NaN);
+    const brand = (j.product.brands || "").split(",")[0].trim();
+    const name = ([j.product.product_name, brand].filter(Boolean).join(" – ") || "Produit " + code).slice(0, 100);
+    if (isNaN(kcal)) return notFound(code, "Valeurs nutritionnelles manquantes.", name);
+    const { data, error } = await sb.from("foods").insert({
+      name, barcode: code, calories: r2(kcal), protein: r2(+n.proteins_100g || 0),
+      carbs: r2(+n.carbohydrates_100g || 0), fat: r2(+n.fat_100g || 0),
+    }).select().single();
+    if (error) throw error;
+    foods.push(data);
+    foods.sort((a, b) => a.name.localeCompare(b.name, "fr"));
+    show(null);
+    listFoods();
+    pick(data.id);
+  } catch (e) {
+    scanMsg("Recherche impossible. Vérifie ta connexion et réessaie.");
+  }
 }
