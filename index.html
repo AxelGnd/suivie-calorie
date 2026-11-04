@@ -85,23 +85,33 @@
     <div class="sheet-head"><h2 id="sheet-title"></h2><button type="button" class="btn-ghost" id="sheet-close">Fermer</button></div>
     <div class="field"><label for="food-search">Chercher un aliment</label><input type="search" id="food-search" autocomplete="off"></div>
     <ul id="food-list"></ul>
+    <div class="sheet-actions">
+      <button type="button" class="btn-ghost" id="btn-create">Créer un aliment</button>
+      <button type="button" class="btn-ghost" id="btn-scan">Scanner un aliment</button>
+    </div>
     <form id="entry-form" class="hidden">
       <p><b id="picked-name"></b></p>
       <div class="field"><label for="qty">Quantité (g)</label><input type="number" id="qty" inputmode="decimal" min="1" step="any" required></div>
       <p id="qty-preview"></p>
       <button type="submit" class="btn-primary">Ajouter au journal</button>
     </form>
-    <details>
-      <summary>Créer un aliment</summary>
-      <form id="food-form">
-        <div class="field"><label for="nf-name">Nom</label><input id="nf-name" maxlength="100" required></div>
-        <div class="field"><label for="nf-kcal">Calories pour 100 g</label><input type="number" id="nf-kcal" inputmode="decimal" min="0" step="any" required></div>
-        <div class="field"><label for="nf-p">Protéines pour 100 g</label><input type="number" id="nf-p" inputmode="decimal" min="0" step="any"></div>
-        <div class="field"><label for="nf-c">Glucides pour 100 g</label><input type="number" id="nf-c" inputmode="decimal" min="0" step="any"></div>
-        <div class="field"><label for="nf-f">Lipides pour 100 g</label><input type="number" id="nf-f" inputmode="decimal" min="0" step="any"></div>
-        <button type="submit" class="btn-primary">Enregistrer l’aliment</button>
+    <div id="scan-box" class="hidden">
+      <video id="scan-video" playsinline muted></video>
+      <p id="scan-msg" role="status"></p>
+      <form id="scan-manual">
+        <div class="field"><label for="scan-code">Ou tape le code-barres</label><input id="scan-code" inputmode="numeric" pattern="[0-9]{8,14}" autocomplete="off"></div>
+        <button type="submit" class="btn-ghost">Chercher</button>
       </form>
-    </details>
+      <button type="button" class="btn-link" id="scan-stop">Annuler le scan</button>
+    </div>
+    <form id="food-form" class="hidden">
+      <div class="field"><label for="nf-name">Nom</label><input id="nf-name" maxlength="100" required></div>
+      <div class="field"><label for="nf-kcal">Calories pour 100 g</label><input type="number" id="nf-kcal" inputmode="decimal" min="0" step="any" required></div>
+      <div class="field"><label for="nf-p">Protéines pour 100 g</label><input type="number" id="nf-p" inputmode="decimal" min="0" step="any"></div>
+      <div class="field"><label for="nf-c">Glucides pour 100 g</label><input type="number" id="nf-c" inputmode="decimal" min="0" step="any"></div>
+      <div class="field"><label for="nf-f">Lipides pour 100 g</label><input type="number" id="nf-f" inputmode="decimal" min="0" step="any"></div>
+      <button type="submit" class="btn-primary">Enregistrer l’aliment</button>
+    </form>
     <p id="sheet-msg" role="alert"></p>
   </dialog>
 </div>
