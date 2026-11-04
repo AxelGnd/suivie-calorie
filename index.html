@@ -2,11 +2,12 @@
 <html lang="fr" data-theme="nocturne">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Mon appli santé</title>
 
 <link rel="stylesheet" href="css/themes.css">
 <link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/nutrition.css">
 
 <!-- Client Supabase (authentification + base de données) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -53,16 +54,56 @@
     </div>
   </header>
   <main>
-    <section class="panel">
-      <h2>Apparence</h2>
-      <div class="theme-grid" id="theme-grid"></div>
-      <p class="sync-status" id="theme-sync-status"></p>
+    <section class="tab-panel" id="tab-nutrition">
+      <div class="day-nav">
+        <button class="btn-ghost" id="day-prev" aria-label="Jour précédent">‹</button>
+        <div id="day-label"></div>
+        <button class="btn-ghost" id="day-next" aria-label="Jour suivant">›</button>
+      </div>
+      <div class="panel summary">
+        <strong id="kcal-left">–</strong>
+        <div class="caption" id="kcal-caption"></div>
+        <div class="bar"><div id="kcal-bar"></div></div>
+        <div class="macros" id="macros"></div>
+        <button class="btn-link" id="goal-edit">Modifier mon objectif</button>
+      </div>
+      <div id="meals"></div>
     </section>
-    <section class="panel">
-      <h2>Bienvenue</h2>
-      <p>Les modules (nutrition, sport, poids, habitudes, recettes) arriveront ici au fur et à mesure.</p>
+    <section class="tab-panel hidden" id="tab-reglages">
+      <section class="panel">
+        <h2>Apparence</h2>
+        <div class="theme-grid" id="theme-grid"></div>
+        <p class="sync-status" id="theme-sync-status"></p>
+      </section>
     </section>
   </main>
+  <nav class="tabbar" aria-label="Sections">
+    <button class="tab-btn" data-tab="nutrition" aria-selected="true">Nutrition</button>
+    <button class="tab-btn" data-tab="reglages" aria-selected="false">Réglages</button>
+  </nav>
+  <dialog id="sheet" aria-labelledby="sheet-title">
+    <div class="sheet-head"><h2 id="sheet-title"></h2><button type="button" class="btn-ghost" id="sheet-close">Fermer</button></div>
+    <div class="field"><label for="food-search">Chercher un aliment</label><input type="search" id="food-search" autocomplete="off"></div>
+    <ul id="food-list"></ul>
+    <form id="entry-form" class="hidden">
+      <p><b id="picked-name"></b></p>
+      <div class="field"><label for="qty">Quantité (g)</label><input type="number" id="qty" inputmode="decimal" min="1" step="any" required></div>
+      <p id="qty-preview"></p>
+      <button type="submit" class="btn-primary">Ajouter au journal</button>
+    </form>
+    <details>
+      <summary>Créer un aliment</summary>
+      <form id="food-form">
+        <div class="field"><label for="nf-name">Nom</label><input id="nf-name" maxlength="100" required></div>
+        <div class="field"><label for="nf-kcal">Calories pour 100 g</label><input type="number" id="nf-kcal" inputmode="decimal" min="0" step="any" required></div>
+        <div class="field"><label for="nf-p">Protéines pour 100 g</label><input type="number" id="nf-p" inputmode="decimal" min="0" step="any"></div>
+        <div class="field"><label for="nf-c">Glucides pour 100 g</label><input type="number" id="nf-c" inputmode="decimal" min="0" step="any"></div>
+        <div class="field"><label for="nf-f">Lipides pour 100 g</label><input type="number" id="nf-f" inputmode="decimal" min="0" step="any"></div>
+        <button type="submit" class="btn-primary">Enregistrer l’aliment</button>
+      </form>
+    </details>
+    <p id="sheet-msg" role="alert"></p>
+  </dialog>
 </div>
 
 <script type="module" src="js/app.js"></script>
