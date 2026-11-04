@@ -16,6 +16,7 @@ const fmt = (n) => n0(n).toLocaleString("fr-FR");
 
 let uid = null, day = iso(new Date()), entries = [], foods = [], goal = 2000;
 let meal = null, picked = null, bound = false;
+export const getFoods = () => foods;
 let pendingCode = null, reader = null, stream = null, scanning = false;
 
 export async function initNutrition(userId) {
