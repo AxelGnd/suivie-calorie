@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="css/themes.css">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/nutrition.css">
+<link rel="stylesheet" href="css/recipes.css">
 
 <!-- Client Supabase (authentification + base de données) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -69,6 +70,17 @@
       </div>
       <div id="meals"></div>
     </section>
+    <section class="tab-panel hidden" id="tab-recettes">
+      <div class="subtabs">
+        <button class="subtab" data-sub="mine" aria-selected="true">Mes recettes</button>
+        <button class="subtab" data-sub="community" aria-selected="false">Communauté</button>
+      </div>
+      <div class="recipe-bar">
+        <label class="chip hidden" id="saved-filter"><input type="checkbox" id="only-saved"> Enregistrées seulement</label>
+        <button class="btn-primary" id="recipe-new">Nouvelle recette</button>
+      </div>
+      <div id="recipe-list"></div>
+    </section>
     <section class="tab-panel hidden" id="tab-reglages">
       <section class="panel">
         <h2>Apparence</h2>
@@ -79,6 +91,7 @@
   </main>
   <nav class="tabbar" aria-label="Sections">
     <button class="tab-btn" data-tab="nutrition" aria-selected="true">Nutrition</button>
+    <button class="tab-btn" data-tab="recettes" aria-selected="false">Recettes</button>
     <button class="tab-btn" data-tab="reglages" aria-selected="false">Réglages</button>
   </nav>
   <dialog id="sheet" aria-labelledby="sheet-title">
@@ -113,6 +126,31 @@
       <button type="submit" class="btn-primary">Enregistrer l’aliment</button>
     </form>
     <p id="sheet-msg" role="alert"></p>
+  </dialog>
+  <dialog id="recipe-view" aria-label="Recette">
+    <div class="sheet-head"><span></span><button type="button" class="btn-ghost" id="rv-close">Fermer</button></div>
+    <div id="rv-body"></div>
+    <p id="rv-msg" role="alert"></p>
+  </dialog>
+  <dialog id="recipe-edit" aria-labelledby="re-title">
+    <div class="sheet-head"><h2 id="re-title">Nouvelle recette</h2><button type="button" class="btn-ghost" id="re-close">Fermer</button></div>
+    <p><small>Une recette publiée est visible par toute la communauté.</small></p>
+    <form id="re-form">
+      <div class="field"><label for="re-name">Nom du plat</label><input id="re-name" maxlength="100" required></div>
+      <div class="field"><label for="re-servings">Nombre de portions</label><input type="number" id="re-servings" min="1" max="50" value="2" required></div>
+      <div class="field"><label for="re-photo">Photo du plat (facultatif)</label><input type="file" id="re-photo" accept="image/*"></div>
+      <h3>Ingrédients</h3>
+      <ul id="re-items"></ul>
+      <div class="re-add">
+        <div class="field"><label for="re-food">Aliment</label><select id="re-food"></select></div>
+        <div class="field"><label for="re-qty">Grammes</label><input type="number" id="re-qty" inputmode="decimal" min="1" step="any"></div>
+        <button type="button" class="btn-ghost" id="re-add">Ajouter</button>
+      </div>
+      <div class="field"><label for="re-notes">Astuces et instructions</label><textarea id="re-notes" rows="5" maxlength="5000"></textarea></div>
+      <p id="re-total"></p>
+      <button type="submit" class="btn-primary" id="re-save">Publier la recette</button>
+      <p id="re-msg" role="alert"></p>
+    </form>
   </dialog>
 </div>
 
