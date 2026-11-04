@@ -7,25 +7,25 @@ export const THEMES = [
     key: "nocturne",
     nom: "Nocturne",
     description: "Sombre et raffiné",
-    swatches: ["#10141c", "#d4a44c", "#4fd1c5"],
+    swatches: ["#0e1419", "#6fd3a8", "#f2b872"],
   },
   {
     key: "clarte",
     nom: "Clarté",
     description: "Épuré et précis",
-    swatches: ["#fafbfc", "#2563eb", "#10b981"],
+    swatches: ["#f5f6f8", "#f26a1b", "#0f766e"],
   },
   {
     key: "seve",
     nom: "Sève",
     description: "Chaleureux et organique",
-    swatches: ["#fcf3e6", "#6b8f71", "#e1a15a"],
+    swatches: ["#eef2e6", "#3f7d4e", "#d98b2b"],
   },
   {
     key: "pulse",
     nom: "Pulse",
     description: "Sportif et énergique",
-    swatches: ["#f2f3f5", "#ff4d4d", "#2d9cdb"],
+    swatches: ["#f1f2f4", "#1f6bff", "#84cc16"],
   },
 ];
 
