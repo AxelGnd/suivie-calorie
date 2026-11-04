@@ -4,12 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Mon appli santé</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600&family=Quicksand:wght@600;700&display=swap">
 
 <link rel="stylesheet" href="css/themes.css">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/nutrition.css">
 <link rel="stylesheet" href="css/recipes.css">
 <link rel="stylesheet" href="css/account.css">
+<link rel="stylesheet" href="css/design.css">
 
 <!-- Client Supabase (authentification + base de données) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -35,7 +39,7 @@
       </div>
       <div class="field">
   <label for="auth-password">Mot de passe</label>
-  <input type="password" id="auth-password" required autocomplete="current-password" minlength="6">
+  <div class="pw-wrap"><input type="password" id="auth-password" required autocomplete="current-password" minlength="6"><button type="button" class="pw-toggle" data-target="auth-password" aria-pressed="false">Afficher</button></div>
   <small style="display: block; color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">
     6 caractères min. avec majuscule, minuscule et chiffre.
   </small>
@@ -54,7 +58,7 @@
 
 <div id="screen-app" class="hidden">
   <header class="app-header">
-    <h1>Tableau de bord</h1>
+    <h1 id="app-title">Nutrition</h1>
     <button type="button" class="user-btn" id="btn-user" aria-label="Mon profil">Profil</button>
   </header>
   <main>
@@ -64,11 +68,13 @@
         <div id="day-label"></div>
         <button class="btn-ghost" id="day-next" aria-label="Jour suivant">›</button>
       </div>
-      <div class="panel summary">
-        <strong id="kcal-left">–</strong>
-        <div class="caption" id="kcal-caption"></div>
-        <div class="bar"><div id="kcal-bar"></div></div>
-        <div class="macros" id="macros"></div>
+      <div class="hero">
+        <div class="ring-wrap">
+          <div class="ring" id="ring" aria-hidden="true"></div>
+          <div class="ring-center"><strong id="kcal-left">–</strong><span class="caption" id="kcal-caption"></span></div>
+        </div>
+        <div class="mix" id="mix" aria-hidden="true"></div>
+        <ul class="legend" id="macros"></ul>
         <button class="btn-link" id="goal-edit">Modifier mon objectif</button>
       </div>
       <div id="meals"></div>
@@ -114,7 +120,7 @@
         <section class="panel">
           <h2>Mot de passe</h2>
           <form id="form-pass">
-            <div class="field"><label for="new-pass">Nouveau mot de passe</label><input type="password" id="new-pass" required autocomplete="new-password" minlength="6"></div>
+            <div class="field"><label for="new-pass">Nouveau mot de passe</label><div class="pw-wrap"><input type="password" id="new-pass" required autocomplete="new-password" minlength="6"><button type="button" class="pw-toggle" data-target="new-pass" aria-pressed="false">Afficher</button></div></div>
             <div class="field"><label for="new-pass2">Confirmer le mot de passe</label><input type="password" id="new-pass2" required autocomplete="new-password" minlength="6"></div>
             <button type="submit" class="btn-primary">Changer mon mot de passe</button>
             <p class="form-msg" id="msg-pass" role="status"></p>
@@ -134,8 +140,8 @@
     </section>
   </main>
   <nav class="tabbar" aria-label="Sections">
-    <button class="tab-btn" data-tab="nutrition" aria-selected="true">Nutrition</button>
-    <button class="tab-btn" data-tab="recettes" aria-selected="false">Recettes</button>
+    <button class="tab-btn" data-tab="nutrition" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/></svg><span>Nutrition</span></button>
+    <button class="tab-btn" data-tab="recettes" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M8 8h8M8 12h5"/></svg><span>Recettes</span></button>
     </nav>
   <dialog id="sheet" aria-labelledby="sheet-title">
     <div class="sheet-head"><h2 id="sheet-title"></h2><button type="button" class="btn-ghost" id="sheet-close">Fermer</button></div>
@@ -196,6 +202,16 @@
     </form>
   </dialog>
 </div>
+
+<div id="toasts" role="status" aria-live="polite"></div>
+<dialog id="goal-dlg" aria-labelledby="goal-title">
+  <div class="sheet-head"><h2 id="goal-title">Objectif quotidien</h2><button type="button" class="btn-ghost" id="goal-close">Fermer</button></div>
+  <form id="goal-form">
+    <div class="field"><label for="goal-input">Calories par jour</label><input type="number" id="goal-input" inputmode="numeric" min="1000" max="6000" step="10" required></div>
+    <button type="submit" class="btn-primary">Enregistrer l’objectif</button>
+    <p class="form-msg" id="goal-msg" role="alert"></p>
+  </form>
+</dialog>
 
 <script type="module" src="js/app.js"></script>
 </body>
