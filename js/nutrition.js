@@ -208,6 +208,11 @@ function loadZXing() {
 }
 
 async function startScan() {
+  try { await startScanInner(); }
+  catch (e) { console.error(e); scanMsg("Le scan a échoué (" + (e.message || e) + "). Tape le code ci-dessous."); }
+}
+
+async function startScanInner() {
   show("scan-box");
   scanMsg("Ouverture de la caméra…");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -216,15 +221,18 @@ async function startScan() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
   } catch (e) {
-    return scanMsg("Accès à la caméra refusé. Tape le code ci-dessous.");
+    return scanMsg(e.name === "NotFoundError"
+      ? "Aucune caméra détectée sur cet appareil. Tape le code ci-dessous."
+      : "Accès à la caméra refusé ou impossible. Tape le code ci-dessous.");
   }
   const video = $("scan-video");
   video.srcObject = stream;
   await video.play().catch(() => {});
   scanMsg("Place le code-barres dans le cadre.");
   scanning = true;
-  if ("BarcodeDetector" in window) {
-    const det = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] });
+  let det = null;
+  try { if ("BarcodeDetector" in window) det = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] }); } catch (e) { det = null; }
+  if (det) {
     const loop = async () => {
       if (!scanning) return;
       try { const r = await det.detect(video); if (r.length) return onCode(r[0].rawValue); } catch (e) { /* on réessaie */ }
