@@ -3,8 +3,17 @@ import { supabaseClient } from "./supabaseClient.js";
 /**
  * Inscription d'un nouvel utilisateur.
  */
-export async function signUp(email, password) {
-  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+export const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,20}$/;
+
+/** Vrai si le pseudo est libre (insensible à la casse). */
+export async function pseudoDisponible(pseudo) {
+  const { data, error } = await supabaseClient.rpc("pseudo_disponible", { p: pseudo });
+  if (error) throw error;
+  return data;
+}
+
+export async function signUp(email, password, pseudo) {
+  const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { pseudo } } });
   if (error) throw error;
   return data;
 }
@@ -55,5 +64,7 @@ export function messageErreurAuth(error) {
   }
   if (msg.includes("Unable to validate email address")) return "Adresse email invalide.";
   if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) return "Impossible de contacter le serveur, vérifie ta connexion internet.";
+  if (msg.includes("Database error saving new user")) return "Ce pseudo est déjà pris ou invalide. Essaie-en un autre.";
+  if (msg.includes("different from the old password")) return "Choisis un mot de passe différent de l'ancien.";
   return msg || "Une erreur inattendue est survenue.";
 }
