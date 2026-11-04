@@ -1,5 +1,6 @@
 import { supabaseClient as sb } from "./supabaseClient.js";
 import { getFoods } from "./nutrition.js";
+import { avatarHtml } from "./account.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -10,6 +11,7 @@ const photoUrl = (p) => (p ? sb.storage.from("recipe-photos").getPublicUrl(p).da
 const per = (r, k) => r.recipe_items.reduce((a, i) => a + +i[k], 0) / r.servings;
 const cnt = (r, k) => (r[k] && r[k][0] ? r[k][0].count : 0);
 const setCnt = (r, k, n) => { r[k] = [{ count: n }]; };
+const who = (r) => (r.public_profiles && r.public_profiles.pseudo) || "Membre";
 
 let uid = null, pseudo = null, recipes = [], liked = new Set(), saved = new Set();
 let sub = "mine", current = null, draft = [], bound = false;
@@ -24,7 +26,7 @@ export async function initRecipes(userId) {
 
 async function load() {
   const [r, l, s] = await Promise.all([
-    sb.from("recipes").select("*, recipe_items(*), recipe_likes(count), recipe_comments(count)").order("created_at", { ascending: false }).limit(200),
+    sb.from("recipes").select("*, public_profiles(pseudo, avatar_path), recipe_items(*), recipe_likes(count), recipe_comments(count)").order("created_at", { ascending: false }).limit(200),
     sb.from("recipe_likes").select("recipe_id").eq("user_id", uid),
     sb.from("recipe_saves").select("recipe_id").eq("user_id", uid),
   ]);
@@ -41,7 +43,7 @@ function syncSubtabs() {
 
 const card = (r) => `<button type="button" class="panel rcard" data-open="${r.id}">
   ${r.photo_path ? `<img src="${esc(photoUrl(r.photo_path))}" alt="" loading="lazy">` : `<span class="noimg"></span>`}
-  <span class="rinfo"><b>${esc(r.title)}</b><small>par ${esc(r.author)}</small><span>${n0(per(r, "calories"))} kcal par portion</span>
+  <span class="rinfo"><b>${esc(r.title)}</b><small class="by">${avatarHtml(r.public_profiles, "av-sm")}par ${esc(who(r))}</small><span>${n0(per(r, "calories"))} kcal par portion</span>
   <small>${cnt(r, "recipe_likes")} j’aime, ${cnt(r, "recipe_comments")} commentaires${saved.has(r.id) ? ", enregistrée" : ""}</small></span></button>`;
 
 function render() {
@@ -53,19 +55,6 @@ function render() {
   $("recipe-list").innerHTML = list.length ? list.map(card).join("") : `<p class="empty">${empty}</p>`;
 }
 
-// ---------- Pseudo (affiché sur les recettes et commentaires) ----------
-async function ensurePseudo() {
-  if (pseudo) return pseudo;
-  const { data } = await sb.from("profiles").select("pseudo").eq("id", uid).maybeSingle();
-  if (data && data.pseudo) return (pseudo = data.pseudo);
-  const p = (prompt("Choisis un pseudo visible par la communauté (2 à 30 caractères)") || "").trim();
-  if (!p) return null;
-  if (p.length < 2 || p.length > 30) { alert("Le pseudo doit faire entre 2 et 30 caractères."); return null; }
-  const { error } = await sb.from("profiles").update({ pseudo: p }).eq("id", uid);
-  if (error) { alert("Pseudo impossible : " + error.message); return null; }
-  return (pseudo = p);
-}
-
 // ---------- Détail d'une recette ----------
 const actionsHtml = (r) => `<button type="button" class="btn-ghost" data-act="like" aria-pressed="${liked.has(r.id)}">J’aime (${cnt(r, "recipe_likes")})</button>
   <button type="button" class="btn-ghost" data-act="save" aria-pressed="${saved.has(r.id)}">${saved.has(r.id) ? "Enregistrée" : "Enregistrer"}</button>
@@ -74,7 +63,7 @@ const actionsHtml = (r) => `<button type="button" class="btn-ghost" data-act="li
 function viewHtml(r) {
   return `${r.photo_path ? `<img class="rv-photo" src="${esc(photoUrl(r.photo_path))}" alt="Photo : ${esc(r.title)}">` : ""}
   <h2>${esc(r.title)}</h2>
-  <p>Par ${esc(r.author)}, pour ${r.servings} portion${r.servings > 1 ? "s" : ""}</p>
+  <p class="by">${avatarHtml(r.public_profiles, "av-sm")}Par ${esc(who(r))}, pour ${r.servings} portion${r.servings > 1 ? "s" : ""}</p>
   <p><b>${n0(per(r, "calories"))} kcal par portion</b>. Protéines ${n0(per(r, "protein"))} g, glucides ${n0(per(r, "carbs"))} g, lipides ${n0(per(r, "fat"))} g.</p>
   <div class="rv-actions" id="rv-actions">${actionsHtml(r)}</div>
   <h3>Ingrédients</h3>
@@ -97,10 +86,10 @@ function openView(id) {
 
 async function loadComments() {
   const id = current.id;
-  const { data, error } = await sb.from("recipe_comments").select("*").eq("recipe_id", id).order("created_at");
+  const { data, error } = await sb.from("recipe_comments").select("*, public_profiles(pseudo, avatar_path)").eq("recipe_id", id).order("created_at");
   if (!current || current.id !== id) return;
   $("rv-comments").innerHTML = error ? `<li class="empty">Commentaires indisponibles.</li>`
-    : data.length ? data.map((c) => `<li><b>${esc(c.author)}</b> <small>${new Date(c.created_at).toLocaleDateString("fr-FR")}</small><p>${esc(c.body)}</p>${c.user_id === uid ? `<button type="button" class="btn-link" data-cdel="${c.id}">Supprimer</button>` : ""}</li>`).join("")
+    : data.length ? data.map((c) => `<li>${avatarHtml(c.public_profiles, "av-sm")} <b>${esc(who(c))}</b> <small>${new Date(c.created_at).toLocaleDateString("fr-FR")}</small><p>${esc(c.body)}</p>${c.user_id === uid ? `<button type="button" class="btn-link" data-cdel="${c.id}">Supprimer</button>` : ""}</li>`).join("")
     : `<li class="empty">Aucun commentaire pour l’instant.</li>`;
   if (!error) { setCnt(current, "recipe_comments", data.length); render(); }
 }
@@ -132,7 +121,7 @@ async function delRecipe() {
 async function addComment(e) {
   e.preventDefault();
   const body = $("rv-comment").value.trim();
-  if (!body || !(await ensurePseudo())) return;
+  if (!body) return;
   const { error } = await sb.from("recipe_comments").insert({ recipe_id: current.id, body });
   if (error) return msg("rv-msg", "Commentaire impossible : " + error.message);
   $("rv-comment").value = "";
@@ -188,7 +177,6 @@ async function shrink(file) { // réduit la photo (max 1280 px) avant l'envoi
 async function save(e) {
   e.preventDefault();
   if (!draft.length) return msg("re-msg", "Ajoute au moins un ingrédient.");
-  if (!(await ensurePseudo())) return msg("re-msg", "Un pseudo est nécessaire pour publier.");
   const btn = $("re-save");
   btn.disabled = true;
   msg("re-msg", "Publication en cours…");
