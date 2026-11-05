@@ -1,4 +1,4 @@
-# Créer le raccourci « Mes pas vers l’appli » (une seule fois, par toi)
+# Créer le raccourci « Synchro pas » (une seule fois, par toi)
 
 Un site ne peut pas créer de raccourci sur ton iPhone. Il faut donc le créer une fois dans l'app Raccourcis,
 le partager par lien iCloud, puis coller ce lien dans `js/sport.js` (constante `SHORTCUT_URL`).
@@ -7,7 +7,7 @@ Ensuite, chaque utilisateur l'ajoute en un geste depuis le bouton « Lier mon co
 Les noms d'actions peuvent varier légèrement selon la version d'iOS.
 
 ## Création
-1. App **Raccourcis** > **+** > nomme-le exactement **Mes pas vers l’appli** (même nom que `SHORTCUT_NAME`).
+1. App **Raccourcis** > **+** > nomme-le exactement **Synchro pas** (même nom que `SHORTCUT_NAME`, sans apostrophe ni accent : un caractère différent suffit à le rendre introuvable).
 2. Action **Texte** : laisse-le vide. Touche-le et renomme la variable en « Code ».
 3. Action **Trouver des échantillons Santé** : Type = **Pas**, Date de début = **est aujourd’hui**.
 4. Action **Calculer les statistiques** : **Somme** des échantillons trouvés.
@@ -37,7 +37,7 @@ Si le total reste à 0 : Réglages > Santé > Accès aux données et appareils >
 
 ## Synchronisation quotidienne (facultatif, à faire par chaque utilisateur)
 Raccourcis > **Automatisation** > **+** > **Heure de la journée** (ex. 22 h) > **Exécuter le raccourci** >
-choisir « Mes pas vers l’appli » > **Exécuter immédiatement**. Apple ne permet pas de créer cette automatisation à sa place.
+choisir « Synchro pas » > **Exécuter immédiatement**. Apple ne permet pas de créer cette automatisation à sa place.
 Sinon, le bouton « Synchroniser mes pas » de l’appli lance le raccourci à la demande.
 
 ## À vérifier
