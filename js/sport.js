@@ -11,7 +11,7 @@ const skeleton = '<div class="skeleton"></div>'.repeat(2);
 const emptyMsg = '<p class="empty">Aucune séance ce jour-là. Touche Nouvelle séance pour commencer.</p>';
 
 // Liaison Santé (iPhone) : lien iCloud du raccourci partagé, à coller ici (voir docs/raccourci-sante.md)
-const SHORTCUT_URL = "https://www.icloud.com/shortcuts/f23022ce8c8a449a95376a4ff2441d75";
+const SHORTCUT_URL = "https://www.icloud.com/shortcuts/d2093683f2c14e5cad073bd719099070";
 const SHORTCUT_NAME = "Synchro pas"; // doit être identique au nom du raccourci dans l'app Raccourcis (nom simple : ni apostrophe ni accent)
 const isIphone = /iPhone|iPod/.test(navigator.userAgent);
 async function sha256(text) {
