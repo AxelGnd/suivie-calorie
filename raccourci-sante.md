@@ -8,7 +8,7 @@ Les noms d'actions peuvent varier légèrement selon la version d'iOS.
 
 ## Création
 1. App **Raccourcis** > **+** > nomme-le exactement **Synchro pas** (même nom que `SHORTCUT_NAME`, sans apostrophe ni accent : un caractère différent suffit à le rendre introuvable).
-2. Action **Texte** : laisse-le vide. Touche-le et renomme la variable en « Code ».
+2. Action **Texte** avec le contenu `COLLE TON CODE ICI`, puis action **Définir la variable** : nom de la variable `Code`, entrée = le texte de l'action du dessus.
 3. Action **Trouver des échantillons Santé** : Type = **Pas**, Date de début = **est aujourd’hui**.
 4. Action **Calculer les statistiques** : **Somme** des échantillons trouvés.
 5. Action **Date actuelle**, puis **Formater la date** : format **Personnalisé**, `yyyy-MM-dd`.
@@ -19,12 +19,18 @@ Les noms d'actions peuvent varier légèrement selon la version d'iOS.
    - Corps de la requête : **JSON**, avec `steps` (type **Nombre**) = le résultat des statistiques, et `date` (type **Texte**) = la date formatée.
 7. Facultatif : action **Afficher la notification** « Pas envoyés ».
 
-## Question d’import (pour que chacun colle son code)
-Réglages du raccourci (icône i) > **Questions d’importation** > ajoute une question sur l’action **Texte** :
-« Colle ton code de liaison ».
+## Avant de partager : retirer ton propre code
+Dans l'action **Texte**, remplace ton code par `COLLE TON CODE ICI`. **Sinon, ton code personnel est inclus dans le lien**
+et les autres utilisateurs enverraient leurs pas sur ton compte. Si tu as déjà partagé un raccourci contenant ton code,
+touche « Délier mon compte Santé » puis « Lier mon compte Santé » dans l'appli : l'ancien code cesse de fonctionner.
 
 ## Partage
 Réglages du raccourci > **Partager** > **Copier le lien iCloud**. Colle ce lien dans `SHORTCUT_URL` de `js/sport.js`.
+
+## Ce que fait chaque nouvel utilisateur
+1. Touche « Lier mon compte Santé » dans l'appli (le code est copié), puis « Ouvrir dans Raccourcis » et « Ajouter le raccourci ».
+2. Ouvre le raccourci « Synchro pas », touche le bloc **Texte** (« COLLE TON CODE ICI »), efface-le, colle son code, touche « OK ».
+3. Lance-le une première fois depuis l'appli (voir ci-dessous).
 
 ## Première utilisation par un nouvel utilisateur (autorisations)
 Après avoir ajouté le raccourci et collé son code, l'utilisateur doit **le lancer une première fois depuis l'appli**
