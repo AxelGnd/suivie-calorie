@@ -297,11 +297,12 @@
   <div class="sheet-head"><h2 id="hl-title">Lier mon compte Santé</h2><button type="button" class="btn-ghost" id="hl-close">Fermer</button></div>
   <ol class="hl-steps">
     <li>Ton code personnel (copié automatiquement) :<code id="hl-token"></code><button type="button" class="btn-ghost" id="hl-copy">Copier le code</button> <small id="hl-copied"></small></li>
-    <li>Ouvre le raccourci, puis touche « Ajouter le raccourci » :<a class="btn-primary" id="hl-open" href="#" rel="noopener">Ouvrir dans Raccourcis</a><small id="hl-nolink" class="hidden">Le lien du raccourci n’est pas encore configuré (voir le guide).</small></li>
-    <li>Quand Raccourcis demande le code, colle-le, puis autorise l’accès à tes pas.</li>
-    <li>Reviens ici et touche « Synchroniser mes pas ».</li>
+    <li>Ouvre le raccourci :<a class="btn-primary" id="hl-open" href="#" rel="noopener">Ouvrir dans Raccourcis</a><small id="hl-nolink" class="hidden">Le lien du raccourci n’est pas encore configuré (voir le guide).</small></li>
+    <li>Quand Raccourcis demande le code, colle-le (appui long dans le champ, puis « Coller »), puis touche « Ajouter le raccourci ».</li>
+    <li><strong>Lance-le une première fois depuis l’appli :</strong> reviens ici, ferme cette fenêtre et touche « Synchroniser mes pas ». Raccourcis s’ouvre et iOS te pose des questions : autoriser la lecture de tes pas dans Santé, et autoriser l’envoi de données vers supabase.co. Réponds « Autoriser » (ou « Toujours autoriser ») à chaque fois. Sans ces autorisations, rien n’est envoyé.</li>
+    <li>Tu reviens ensuite dans l’appli et tes pas apparaissent. Les fois suivantes, un seul appui sur « Synchroniser mes pas » suffit.</li>
   </ol>
-  <p><small>Le code sert uniquement à envoyer tes pas. Tu peux délier ton compte à tout moment.</small></p>
+  <p><small>Si le total reste à 0 : Réglages > Santé > Accès aux données et appareils > Raccourcis, puis autorise « Pas ». Le code sert uniquement à envoyer tes pas, et tu peux délier ton compte à tout moment.</small></p>
 </dialog>
 <div id="toasts" role="status" aria-live="polite"></div>
 <dialog id="goal-dlg" aria-labelledby="goal-title">
