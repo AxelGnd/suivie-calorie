@@ -11,7 +11,7 @@ const skeleton = '<div class="skeleton"></div>'.repeat(2);
 const emptyMsg = '<p class="empty">Aucune séance ce jour-là. Touche Nouvelle séance pour commencer.</p>';
 
 // Liaison Santé (iPhone) : lien iCloud du raccourci partagé, à coller ici (voir docs/raccourci-sante.md)
-const SHORTCUT_URL = "https://www.icloud.com/shortcuts/335e1ff89e804c9da330abf24ebae7e3";
+const SHORTCUT_URL = "";
 const SHORTCUT_NAME = "Mes pas vers l’appli"; // doit être identique au nom du raccourci dans l'app Raccourcis
 const isIphone = /iPhone|iPod/.test(navigator.userAgent);
 async function sha256(text) {
@@ -272,7 +272,7 @@ function drawHealth() {
   if (!link) return;
   $("health-last").textContent = link.last_used_at
     ? "Dernière synchronisation : " + new Date(link.last_used_at).toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })
-    : "Aucune synchronisation pour l’instant.";
+    : "Pas encore synchronisé : touche « Synchroniser mes pas » une première fois et accepte les autorisations demandées par iOS.";
 }
 
 async function linkHealth() {
