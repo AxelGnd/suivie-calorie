@@ -164,11 +164,27 @@
       </div>
       <div id="usub-account" class="hidden">
         <section class="panel account">
-          <div id="acc-av"></div>
-          <h2 id="acc-pseudo"></h2>
-          <p id="user-email"></p>
-          <div class="field"><label for="acc-photo">Photo de profil</label><input type="file" id="acc-photo" accept="image/*"></div>
-          <p class="form-msg" id="msg-photo" role="status"></p>
+      <label for="acc-photo" class="avatar-upload" title="Modifier ma photo de profil">
+  <div id="acc-av"></div>
+
+  <span class="avatar-camera" aria-hidden="true">
+    <svg viewBox="0 0 24 24">
+      <path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11H3V8a1 1 0 0 1 1-1Z"/>
+      <circle cx="12" cy="13" r="3.5"/>
+    </svg>
+  </span>
+</label>
+
+<input
+  type="file"
+  id="acc-photo"
+  accept="image/*"
+  class="avatar-file-input"
+>
+
+<h2 id="acc-pseudo"></h2>
+<p id="user-email"></p>
+<p class="form-msg" id="msg-photo" role="status"></p>
           <button class="btn-ghost" id="btn-logout">Déconnexion</button>
         </section>
       </div>
