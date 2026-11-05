@@ -90,6 +90,40 @@
       </div>
       <div id="recipe-list"></div>
     </section>
+    <section class="tab-panel hidden" id="tab-sport">
+      <div class="day-nav">
+        <button class="btn-ghost" id="sp-prev" aria-label="Jour précédent">‹</button>
+        <div id="sp-label"></div>
+        <button class="btn-ghost" id="sp-next" aria-label="Jour suivant">›</button>
+      </div>
+      <div class="hero">
+        <div class="ring-wrap">
+          <div class="ring" id="sp-ring" aria-hidden="true"></div>
+          <div class="ring-center"><strong id="sp-left">–</strong><span class="caption" id="sp-caption"></span></div>
+        </div>
+        <ul class="legend" id="sp-legend"></ul>
+        <button class="btn-link" id="sp-settings">Poids et objectif</button>
+      </div>
+      <form id="steps-form" class="panel steps">
+        <div class="field"><label for="steps-input">Pas du jour</label><input type="number" id="steps-input" inputmode="numeric" min="0" max="200000" required></div>
+        <button type="submit" class="btn-ghost">Enregistrer</button>
+      </form>
+      <p class="note" id="sp-note"></p>
+      <section class="panel hidden" id="health-panel">
+        <h2>Santé (iPhone)</h2>
+        <div id="health-unlinked">
+          <p>Récupère tes pas automatiquement depuis l’app Santé, grâce à un raccourci.</p>
+          <button type="button" class="btn-primary" id="health-link">Lier mon compte Santé</button>
+        </div>
+        <div id="health-linked" class="hidden">
+          <p id="health-last"></p>
+          <button type="button" class="btn-primary" id="health-sync">Synchroniser mes pas</button>
+          <button type="button" class="btn-link" id="health-unlink">Délier mon compte Santé</button>
+        </div>
+      </section>
+      <button class="btn-primary" id="wk-new">Nouvelle séance</button>
+      <div id="wk-list"></div>
+    </section>
     <section class="tab-panel hidden" id="tab-user">
       <div class="subtabs">
         <button class="usubtab" data-usub="settings" aria-selected="true">Paramètres</button>
@@ -142,6 +176,7 @@
   <nav class="tabbar" aria-label="Sections">
     <button class="tab-btn" data-tab="nutrition" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/></svg><span>Nutrition</span></button>
     <button class="tab-btn" data-tab="recettes" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M8 8h8M8 12h5"/></svg><span>Recettes</span></button>
+    <button class="tab-btn" data-tab="sport" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg><span>Sport</span></button>
     </nav>
   <dialog id="sheet" aria-labelledby="sheet-title">
     <div class="sheet-head"><h2 id="sheet-title"></h2><button type="button" class="btn-ghost" id="sheet-close">Fermer</button></div>
@@ -219,6 +254,54 @@
     <button type="submit" class="btn-primary">Ajouter au journal</button>
     <p class="form-msg" id="rl-msg" role="alert"></p>
   </form>
+</dialog>
+<dialog class="sheet" id="sport-dlg" aria-labelledby="spd-title">
+  <div class="sheet-head"><h2 id="spd-title">Poids et objectif</h2><button type="button" class="btn-ghost" id="spd-close">Fermer</button></div>
+  <form id="sport-form">
+    <div class="field"><label for="spd-weight">Mon poids (kg)</label><input type="number" id="spd-weight" inputmode="decimal" min="30" max="300" step="0.1" required></div>
+    <div class="field"><label for="spd-target">Objectif de calories dépensées par jour</label><input type="number" id="spd-target" inputmode="numeric" min="50" max="3000" step="10" required></div>
+    <p><small>Le poids sert uniquement à estimer tes dépenses et reste privé.</small></p>
+    <button type="submit" class="btn-primary">Enregistrer</button>
+    <p class="form-msg" id="spd-msg" role="alert"></p>
+  </form>
+</dialog>
+<dialog class="sheet" id="workout-dlg" aria-labelledby="wd-title">
+  <div class="sheet-head"><h2 id="wd-title">Nouvelle séance</h2><button type="button" class="btn-ghost" id="wd-close">Fermer</button></div>
+  <form id="wd-form" novalidate>
+    <div class="field"><label for="wd-title-in">Nom de la séance (facultatif)</label><input id="wd-title-in" maxlength="80" placeholder="Jambes, sortie running…"></div>
+    <div class="field"><label for="wd-date">Jour</label><input type="date" id="wd-date"></div>
+    <h3>Exercices de la séance</h3>
+    <ul id="wd-items"></ul>
+    <h3>Ajouter un exercice</h3>
+    <div class="field"><label for="ex-act">Activité</label><select id="ex-act"></select></div>
+    <div class="kind hidden" data-kinds="strength">
+      <div class="field"><label for="ex-name">Exercice</label><input id="ex-name" list="ex-names" maxlength="80" autocomplete="off"></div>
+      <datalist id="ex-names"></datalist>
+      <div class="row3">
+        <div class="field"><label for="ex-sets">Séries</label><input type="number" id="ex-sets" inputmode="numeric" min="1" max="50"></div>
+        <div class="field"><label for="ex-reps">Répétitions</label><input type="number" id="ex-reps" inputmode="numeric" min="1" max="500"></div>
+        <div class="field"><label for="ex-load">Charge (kg)</label><input type="number" id="ex-load" inputmode="decimal" min="0" max="1000" step="0.5"></div>
+      </div>
+    </div>
+    <div class="kind hidden" data-kinds="speed time"><div class="field"><label for="ex-dur">Durée (minutes)</label><input type="number" id="ex-dur" inputmode="decimal" min="1" max="1000" step="any"></div></div>
+    <div class="kind hidden" data-kinds="speed"><div class="field"><label for="ex-speed">Vitesse moyenne (km/h)</label><input type="number" id="ex-speed" inputmode="decimal" min="1" max="60" step="any"></div></div>
+    <div class="kind hidden" data-kinds="time"><div class="field"><label for="ex-int">Intensité</label><select id="ex-int"><option value="leger">Légère</option><option value="modere" selected>Modérée</option><option value="intense">Intense</option></select></div></div>
+    <p id="ex-preview"></p>
+    <button type="button" class="btn-ghost" id="ex-add">Ajouter l’exercice</button>
+    <p id="wd-total"></p>
+    <button type="submit" class="btn-primary">Enregistrer la séance</button>
+    <p class="form-msg" id="wd-msg" role="alert"></p>
+  </form>
+</dialog>
+<dialog class="sheet" id="health-dlg" aria-labelledby="hl-title">
+  <div class="sheet-head"><h2 id="hl-title">Lier mon compte Santé</h2><button type="button" class="btn-ghost" id="hl-close">Fermer</button></div>
+  <ol class="hl-steps">
+    <li>Ton code personnel (copié automatiquement) :<code id="hl-token"></code><button type="button" class="btn-ghost" id="hl-copy">Copier le code</button> <small id="hl-copied"></small></li>
+    <li>Ouvre le raccourci, puis touche « Ajouter le raccourci » :<a class="btn-primary" id="hl-open" href="#" rel="noopener">Ouvrir dans Raccourcis</a><small id="hl-nolink" class="hidden">Le lien du raccourci n’est pas encore configuré (voir le guide).</small></li>
+    <li>Quand Raccourcis demande le code, colle-le, puis autorise l’accès à tes pas.</li>
+    <li>Reviens ici et touche « Synchroniser mes pas ».</li>
+  </ol>
+  <p><small>Le code sert uniquement à envoyer tes pas. Tu peux délier ton compte à tout moment.</small></p>
 </dialog>
 <div id="toasts" role="status" aria-live="polite"></div>
 <dialog id="goal-dlg" aria-labelledby="goal-title">
