@@ -2,6 +2,7 @@ import { PSEUDO_RE, pseudoDisponible, signUp, signIn, signOut, getSession, onAut
 import { initNutrition } from "./nutrition.js";
 import { initRecipes } from "./recipes.js";
 import { initAccount } from "./account.js";
+import { initSport } from "./sport.js";
 import { initUi } from "./ui.js";
 import { THEMES, applyTheme, getCachedTheme, chargerThemeDepuisProfil, changerTheme } from "./theme.js";
 
@@ -205,6 +206,7 @@ async function afficherApp(session) {
   initNutrition(currentUserId);
   initRecipes(currentUserId);
   initAccount(currentUserId);
+  initSport(currentUserId);
 }
 onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") {
@@ -238,7 +240,7 @@ onAuthStateChange((event, session) => {
 });
 
 // ---------- Onglets ----------
-const TITLES = { nutrition: "Nutrition", recettes: "Recettes", user: "Mon profil" };
+const TITLES = { nutrition: "Nutrition", recettes: "Recettes", sport: "Sport", user: "Mon profil" };
 function showTab(name) {
   document.getElementById("app-title").textContent = TITLES[name] || "";
   document.querySelectorAll(".tab-btn").forEach((x) => x.setAttribute("aria-selected", String(x.dataset.tab === name)));
