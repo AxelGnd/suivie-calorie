@@ -12,7 +12,7 @@ const emptyMsg = '<p class="empty">Aucune séance ce jour-là. Touche Nouvelle s
 
 // Liaison Santé (iPhone) : lien iCloud du raccourci partagé, à coller ici (voir docs/raccourci-sante.md)
 const SHORTCUT_URL = "";
-const SHORTCUT_NAME = "Mes pas vers l’appli"; // doit être identique au nom du raccourci dans l'app Raccourcis
+const SHORTCUT_NAME = "Synchro pas"; // doit être identique au nom du raccourci dans l'app Raccourcis (nom simple : ni apostrophe ni accent)
 const isIphone = /iPhone|iPod/.test(navigator.userAgent);
 async function sha256(text) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -270,6 +270,7 @@ function drawHealth() {
   $("health-unlinked").classList.toggle("hidden", !!link);
   $("health-linked").classList.toggle("hidden", !link);
   if (!link) return;
+  $("health-name").textContent = SHORTCUT_NAME;
   $("health-last").textContent = link.last_used_at
     ? "Dernière synchronisation : " + new Date(link.last_used_at).toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })
     : "Pas encore synchronisé : touche « Synchroniser mes pas » une première fois et accepte les autorisations demandées par iOS.";
