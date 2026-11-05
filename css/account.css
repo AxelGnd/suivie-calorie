@@ -14,3 +14,79 @@
 .account .field { text-align: left; }
 .form-msg { margin: var(--space-2) 0 0; font-size: 0.88rem; color: var(--danger); }
 .form-msg.ok { color: var(--accent-2); }
+/* Photo de profil cliquable */
+
+.avatar-upload {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 50%;
+  margin-bottom: var(--space-2);
+}
+
+.avatar-upload #acc-av {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0;
+}
+
+.avatar-upload .av {
+  transition: filter 0.2s ease;
+}
+
+.avatar-upload:hover .av {
+  filter: brightness(0.75);
+}
+
+/* Icône caméra */
+
+.avatar-camera {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  backdrop-filter: blur(5px);
+  color: white;
+  transition: background 0.2s ease;
+}
+
+.avatar-camera svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.avatar-upload:hover .avatar-camera {
+  background: var(--accent);
+}
+
+/* Champ de fichier invisible */
+
+.avatar-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.avatar-file-input:focus-visible + h2 {
+  outline: 2px solid var(--accent);
+}
